@@ -1,0 +1,118 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="인터넷 속도체크" description="Cloudflare 서버와 병렬 연결로 다운로드 속도, 핑, 지터를 측정하는 인터넷 속도체크.">
+  <div class="wrap">
+    <section class="page-head">
+      <h1>인터넷 속도체크</h1>
+      <p>Cloudflare 서버와 6개의 병렬 연결로 다운로드 속도와 지연시간을 측정합니다.</p>
+    </section>
+
+    <div class="card panel speed">
+      <div class="speed-num"><span id="mbps">0.0</span><small>Mbps</small></div>
+      <div class="bar"><div id="fill"></div></div>
+      <p class="note" id="status">영상 시청이나 다운로드를 멈춘 뒤 측정하세요. 약 10초 걸립니다.</p>
+      <button class="btn btn-primary" id="start" type="button">측정 시작</button>
+      <div class="stats">
+        <div class="stat"><b id="ping">-</b><span>핑 (ms)</span></div>
+        <div class="stat"><b id="jitter">-</b><span>지터 (ms)</span></div>
+        <div class="stat"><b id="used">-</b><span>사용 데이터 (MB)</span></div>
+      </div>
+    </div>
+
+    <section class="guide">
+      <h2>측정 결과 읽는 법</h2>
+      <h3>Mbps</h3>
+      <p>1초에 받을 수 있는 데이터 양입니다. 100Mbps는 초당 약 12.5MB를 받는 속도예요.</p>
+      <h3>핑과 지터</h3>
+      <p>핑은 서버까지 응답이 오가는 시간, 지터는 그 시간의 흔들림입니다. 둘 다 낮을수록 화상회의와 게임이 안정적입니다.</p>
+      <h3>참고하세요</h3>
+      <p>Wi-Fi 거리, 브라우저 탭, 다른 기기의 사용량에 따라 결과가 달라집니다. 참고용으로 봐주세요.</p>
+    </section>
+  </div>
+</Base>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  const URL_BASE = 'https://speed.cloudflare.com/__down';
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  async function measurePing() {
+    const t: number[] = [];
+    for (let i = 0; i < 11; i++) {
+      const s = performance.now();
+      await fetch(`${URL_BASE}?bytes=0&r=${Math.random()}`, { cache: 'no-store' });
+      t.push(performance.now() - s);
+    }
+    t.shift(); // 첫 요청은 연결 수립 시간이 섞여 제외
+    const avg = t.reduce((a, b) => a + b, 0) / t.length;
+    const jit = t.slice(1).reduce((a, v, i) => a + Math.abs(v - t[i]), 0) / (t.length - 1);
+    return { avg, jit };
+  }
+
+  async function measureDownload(seconds = 8, streams = 6) {
+    const ctrl = new AbortController();
+    const t0 = performance.now();
+    let bytes = 0, baseBytes = 0, baseT = 0, failed = 0, mbps = 0;
+
+    const show = () => {
+      const now = performance.now();
+      if (!baseT && now - t0 >= 1000) { baseT = now; baseBytes = bytes; } // 초반 1초는 워밍업
+      mbps = baseT
+        ? ((bytes - baseBytes) * 8) / ((now - baseT) / 1000) / 1e6
+        : (bytes * 8) / ((now - t0) / 1000) / 1e6;
+      $('mbps').textContent = mbps.toFixed(1);
+      $('fill').style.width = Math.min(100, (Math.log10(1 + mbps) / 3) * 100) + '%';
+      $('used').textContent = (bytes / 1e6).toFixed(0);
+    };
+
+    const stream = async () => {
+      while (!ctrl.signal.aborted) {
+        try {
+          const res = await fetch(`${URL_BASE}?bytes=50000000&r=${Math.random()}`, { cache: 'no-store', signal: ctrl.signal });
+          const reader = res.body!.getReader();
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.length;
+          }
+        } catch {
+          if (ctrl.signal.aborted) return;
+          if (++failed > 12) return;
+          await sleep(300);
+        }
+      }
+    };
+
+    const jobs = Array.from({ length: streams }, stream);
+    const timer = setInterval(show, 200);
+    await sleep(seconds * 1000);
+    ctrl.abort();
+    clearInterval(timer);
+    await Promise.allSettled(jobs);
+    show();
+    if (!bytes) throw new Error('no data');
+    return mbps;
+  }
+
+  $('start').addEventListener('click', async () => {
+    const btn = $('start') as HTMLButtonElement;
+    btn.disabled = true;
+    ['ping', 'jitter', 'used'].forEach((id) => ($(id).textContent = '-'));
+    $('mbps').textContent = '0.0';
+    $('fill').style.width = '0';
+    try {
+      $('status').textContent = '지연시간을 측정하는 중…';
+      const p = await measurePing();
+      $('ping').textContent = p.avg.toFixed(0);
+      $('jitter').textContent = p.jit.toFixed(1);
+      $('status').textContent = '다운로드 속도를 측정하는 중…';
+      const m = await measureDownload();
+      $('status').textContent = `측정 완료: 평균 ${m.toFixed(1)}Mbps`;
+    } catch {
+      $('status').textContent = '측정 서버에 연결하지 못했습니다. 네트워크를 확인하고 다시 시도하세요.';
+    }
+    btn.textContent = '다시 측정';
+    btn.disabled = false;
+  });
+</script>

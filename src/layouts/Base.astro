@@ -1,0 +1,43 @@
+---
+import '../styles/global.css';
+
+const { title, description = '인터넷 속도 측정, 글자수 세기, 네이버 블로그 노출 확인까지. 자주 쓰는 웹 도구 모음.' } = Astro.props;
+const fullTitle = title ? `${title} | WebTools` : 'WebTools - 자주 쓰는 웹 도구 모음';
+const path = Astro.url.pathname;
+const nav = [
+  { href: '/tools/speed/', label: '속도체크' },
+  { href: '/tools/char-count/', label: '글자수 세기' },
+  { href: '/tools/naver-check/', label: '블로그 누락 체크' },
+];
+---
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap nav">
+        <a href="/" class="logo"><i>W</i>WebTools</a>
+        <ul>
+          {nav.map((n) => (
+            <li><a class="link" href={n.href} aria-current={path.startsWith(n.href) ? 'page' : undefined}>{n.label}</a></li>
+          ))}
+        </ul>
+        <span></span>
+      </div>
+    </header>
+    <main><slot /></main>
+    <footer class="site">
+      <div class="wrap">© 2026 WebTools. 입력한 내용은 서버에 저장되지 않습니다.</div>
+    </footer>
+  </body>
+</html>
