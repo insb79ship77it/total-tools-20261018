@@ -1,0 +1,11 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+import TransformTool from '../../components/TransformTool.astro';
+---
+<ToolPage title="JSON 정렬·검증" description="JSON을 보기 좋게 정렬하고, 한 줄로 줄이고, 문법 오류를 확인하는 도구." lead="JSON 데이터를 정렬하고 문법이 맞는지 검증합니다.">
+  <TransformTool tool="json" placeholder='{"name":"홍길동","age":30}' />
+  <Fragment slot="guide">
+    <h2>쓰는 법</h2>
+    <p>"정렬하기"는 들여쓰기를 넣어 읽기 쉽게 만들고, "한 줄로 축소"는 공백을 모두 지웁니다. "키 이름순 정렬"은 모든 객체의 키를 가나다·ABC 순으로 정렬해 두 JSON을 비교할 때 편해요. 문법 오류가 있으면 이유를 알려드립니다. 입력한 내용은 브라우저 안에서만 처리됩니다.</p>
+  </Fragment>
+</ToolPage>

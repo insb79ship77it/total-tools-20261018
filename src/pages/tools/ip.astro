@@ -1,0 +1,103 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+---
+<ToolPage title="IP 주소 조회" description="내 공인 IP 주소와 위치, 통신사를 확인하고 다른 IP도 조회할 수 있는 IP 조회 도구." lead="내 공인 IP와 접속 환경을 확인하고, 궁금한 IP 주소의 위치와 통신사도 조회합니다.">
+  <div class="card panel">
+    <p class="note" style="margin:0 0 4px">내 공인 IP</p>
+    <p class="big" id="myip">조회 중…</p>
+    <div class="row">
+      <input id="q" class="field" type="text" placeholder="조회할 IP 주소 (예: 8.8.8.8)" aria-label="조회할 IP 주소" />
+      <button id="go" class="btn btn-primary" type="button">조회</button>
+    </div>
+    <p class="err" id="err" hidden></p>
+    <dl class="kv" id="info"></dl>
+    <iframe class="map" id="map" title="IP 대략 위치 지도" hidden loading="lazy"></iframe>
+    <p class="hint" id="maphint" hidden>IP 위치는 통신사 단위의 대략적인 위치라 실제 위치와 다를 수 있습니다.</p>
+  </div>
+
+  <div class="card panel mt">
+    <h2 style="margin:0;font-size:1.15rem;color:var(--navy)">내 접속 환경</h2>
+    <dl class="kv" id="env"></dl>
+  </div>
+
+  <Fragment slot="guide">
+    <h2>공인 IP와 사설 IP</h2>
+    <p>공인 IP는 통신사가 부여하며 인터넷에서 내 연결을 구분하는 주소입니다. 사설 IP(192.168.x.x 등)는 공유기 안쪽에서만 쓰는 주소라 이 도구에서 조회되지 않아요.</p>
+    <h3>위치가 다르게 나와요</h3>
+    <p>IP 기반 위치는 통신사가 등록한 정보를 따르기 때문에 시·도 단위로도 어긋날 수 있습니다. VPN이나 회사 망을 쓰면 그 서버의 위치가 표시됩니다.</p>
+  </Fragment>
+</ToolPage>
+
+<script>
+  import { $ } from '../../lib/dom';
+
+  const rows: [string, string][] = [
+    ['ip', 'IP 주소'], ['country', '국가'], ['place', '지역'], ['org', '통신사·기관'], ['asn', 'ASN'], ['tz', '시간대'], ['geo', '좌표 (대략)'],
+  ];
+  $('info').innerHTML = rows.map(([k, l]) => `<dt>${l}</dt><dd id="i-${k}">-</dd>`).join('');
+
+  const set = (k: string, v?: string | null) => ($('i-' + k).textContent = v || '-');
+  const countryName = (c?: string) => {
+    if (!c) return '-';
+    try { return `${new Intl.DisplayNames(['ko'], { type: 'region' }).of(c)} (${c})`; } catch { return c; }
+  };
+
+  function fill(d: any) {
+    set('ip', d.ip);
+    set('country', countryName(d.countryCode));
+    set('place', [d.region, d.city].filter(Boolean).join(' '));
+    set('org', d.org);
+    set('asn', d.asn);
+    set('tz', d.timezone);
+    const hasGeo = typeof d.lat === 'number' && typeof d.lon === 'number';
+    set('geo', hasGeo ? `${d.lat.toFixed(3)}, ${d.lon.toFixed(3)}` : '');
+    const map = $<HTMLIFrameElement>('map');
+    map.hidden = $('maphint').hidden = !hasGeo;
+    if (hasGeo) {
+      const { lat, lon } = d;
+      map.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.25}%2C${lat - 0.15}%2C${lon + 0.25}%2C${lat + 0.15}&layer=mapnik&marker=${lat}%2C${lon}`;
+    }
+  }
+
+  async function lookup(ip?: string) {
+    const res = await fetch('/api/ip' + (ip ? `?ip=${encodeURIComponent(ip)}` : ''));
+    const d = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
+    return d;
+  }
+
+  async function search() {
+    const err = $('err');
+    err.hidden = true;
+    const btn = $<HTMLButtonElement>('go');
+    btn.disabled = true;
+    try {
+      fill(await lookup($<HTMLInputElement>('q').value.trim() || undefined));
+    } catch (e) {
+      err.textContent = (e as Error).message;
+      err.hidden = false;
+    }
+    btn.disabled = false;
+  }
+
+  (async () => {
+    try {
+      const d = await lookup();
+      $('myip').textContent = d.ip || '확인할 수 없음';
+      fill(d);
+    } catch {
+      $('myip').textContent = '확인할 수 없음';
+    }
+  })();
+  $('go').addEventListener('click', search);
+  $('q').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') search(); });
+
+  // 접속 환경
+  const ua = navigator.userAgent;
+  const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '알 수 없음';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '알 수 없음';
+  const env: [string, string][] = [
+    ['운영체제', os], ['브라우저', browser], ['화면 해상도', `${screen.width} × ${screen.height}`], ['언어', navigator.language],
+  ];
+  $('env').innerHTML = env.map(([l, v]) => `<dt>${l}</dt><dd>${v}</dd>`).join('');
+</script>

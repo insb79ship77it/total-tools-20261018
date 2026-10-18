@@ -1,0 +1,104 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+---
+<ToolPage title="링크 텍스트 매핑" description="줄마다 다른 링크를 걸어 HTML을 만들어 주는 텍스트 링크 매핑 도구." lead="링크 목록과 글을 넣으면 글의 각 줄에 같은 순서의 링크가 걸린 HTML을 만들어 줍니다.">
+  <div class="card panel">
+    <div class="two">
+      <div>
+        <label class="lbl" for="m-links">1. 링크 목록 (줄바꿈으로 구분) <span class="hint" id="m-linkcount">현재 0줄</span></label>
+        <textarea id="m-links" class="field" placeholder="https://example.com/a&#10;https://example.com/b"></textarea>
+      </div>
+      <div>
+        <label class="lbl" for="m-text">2. 텍스트 입력 <span class="hint" id="m-textcount">공백 포함 0자 / 공백 제외 0자</span></label>
+        <textarea id="m-text" class="field" placeholder="첫 번째 줄&#10;두 번째 줄"></textarea>
+      </div>
+    </div>
+    <div class="btns"><button type="button" class="btn btn-primary btn-sm" id="m-run">변환하기</button></div>
+
+    <label class="lbl mt" for="m-html">3. HTML 소스 (수정 가능)</label>
+    <textarea id="m-html" class="field" style="min-height:140px"></textarea>
+    <div class="btns"><button type="button" class="btn btn-ghost btn-sm" id="m-copy-html">HTML 소스 복사</button></div>
+
+    <p class="lbl mt">4. 최종 결과 미리보기</p>
+    <div class="preview" id="m-preview"></div>
+    <div class="btns"><button type="button" class="btn btn-ghost btn-sm" id="m-copy-rich">결과 복사 (링크 유지)</button></div>
+  </div>
+  <Fragment slot="guide">
+    <h2>쓰는 법</h2>
+    <p>링크 목록의 n번째 줄이 텍스트의 n번째 줄에 연결됩니다. 빈 줄은 건너뛰고, 링크가 모자라면 남은 줄은 링크 없이 그대로 둡니다. 주소가 https://로 시작하지 않으면 자동으로 붙여요. 결과 복사 버튼은 링크가 살아 있는 상태로 복사하므로 블로그 편집기에 바로 붙여넣을 수 있습니다.</p>
+  </Fragment>
+</ToolPage>
+
+<script>
+  import { $, esc, copy, flash } from '../../lib/dom';
+  const links = $<HTMLTextAreaElement>('m-links');
+  const text = $<HTMLTextAreaElement>('m-text');
+  const html = $<HTMLTextAreaElement>('m-html');
+  const preview = $('m-preview');
+
+  const lines = (s: string) => s.split(/\r?\n/);
+
+  function counts() {
+    const n = lines(links.value).filter((l) => l.trim()).length;
+    $('m-linkcount').textContent = `현재 ${n}줄`;
+    $('m-textcount').textContent = `공백 포함 ${[...text.value].length}자 / 공백 제외 ${[...text.value.replace(/\s/g, '')].length}자`;
+  }
+
+  function convert() {
+    const urls = lines(links.value).map((l) => l.trim()).filter(Boolean);
+    let i = 0;
+    html.value = lines(text.value)
+      .map((l) => {
+        if (!l.trim()) return '';
+        const u = urls[i++];
+        if (!u) return esc(l);
+        const href = /^https?:\/\//i.test(u) ? u : 'https://' + u;
+        return `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(l)}</a>`;
+      })
+      .join('<br>\n');
+    render();
+  }
+
+  // 미리보기는 안전한 태그만 남기고 렌더링합니다.
+  const OK = new Set(['A', 'BR', 'P', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'DIV']);
+  function clean(node: Node) {
+    for (const c of [...node.childNodes]) {
+      if (c.nodeType !== 1) continue;
+      const el = c as Element;
+      clean(el);
+      if (!OK.has(el.tagName)) { el.replaceWith(...el.childNodes); continue; }
+      for (const a of [...el.attributes]) {
+        const keep = el.tagName === 'A' && (a.name === 'target' || a.name === 'rel' || (a.name === 'href' && /^https?:/i.test(a.value)));
+        if (!keep) el.removeAttribute(a.name);
+      }
+    }
+  }
+  function render() {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html.value;
+    clean(tpl.content);
+    preview.innerHTML = '';
+    preview.append(tpl.content);
+  }
+
+  links.addEventListener('input', counts);
+  text.addEventListener('input', counts);
+  html.addEventListener('input', render);
+  $('m-run').addEventListener('click', convert);
+  $('m-copy-html').addEventListener('click', (e) => copy(html.value, e.currentTarget as HTMLElement));
+  $('m-copy-rich').addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLElement;
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([preview.innerHTML], { type: 'text/html' }),
+          'text/plain': new Blob([preview.innerText], { type: 'text/plain' }),
+        }),
+      ]);
+      flash(btn);
+    } catch {
+      await copy(preview.innerText, btn);
+    }
+  });
+  counts();
+</script>

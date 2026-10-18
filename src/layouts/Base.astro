@@ -1,13 +1,17 @@
 ---
 import '../styles/global.css';
+import { tools, groups } from '../data/tools';
+import { site } from '../data/site';
 
-const { title, description = '인터넷 속도 측정, 글자수 세기, 네이버 블로그 노출 확인까지. 자주 쓰는 웹 도구 모음.' } = Astro.props;
-const fullTitle = title ? `${title} | WebTools` : 'WebTools - 자주 쓰는 웹 도구 모음';
+const { title, description = '속도체크, IP 조회, 도메인 조회, 글자수 세기, 네이버 블로그 노출 확인까지. 자주 쓰는 웹 도구 모음.' } = Astro.props;
+const fullTitle = title ? `${title} | ${site.name}` : `${site.name} - 자주 쓰는 웹 도구 모음`;
 const path = Astro.url.pathname;
-const nav = [
-  { href: '/tools/speed/', label: '속도체크' },
-  { href: '/tools/char-count/', label: '글자수 세기' },
-  { href: '/tools/naver-check/', label: '블로그 누락 체크' },
+const primary = tools.filter((t) => t.primary);
+const footLinks = [
+  { href: '/about/', label: '서비스 소개' },
+  { href: '/privacy/', label: '개인정보처리방침' },
+  { href: '/terms/', label: '이용약관' },
+  { href: '/contact/', label: '문의하기' },
 ];
 ---
 <!doctype html>
@@ -26,18 +30,39 @@ const nav = [
   <body>
     <header class="site">
       <div class="wrap nav">
-        <a href="/" class="logo"><i>W</i>WebTools</a>
+        <a href="/" class="logo"><i>W</i>{site.name}</a>
         <ul>
-          {nav.map((n) => (
-            <li><a class="link" href={n.href} aria-current={path.startsWith(n.href) ? 'page' : undefined}>{n.label}</a></li>
+          {primary.map((t) => (
+            <li class="hide-m"><a class="link" href={`/tools/${t.slug}/`} aria-current={path.startsWith(`/tools/${t.slug}/`) ? 'page' : undefined}>{t.short}</a></li>
           ))}
+          <li>
+            <details class="menu" id="menu">
+              <summary>전체 도구</summary>
+              <div class="menu-panel">
+                {groups.map((g) => (
+                  <div>
+                    <h4>{g}</h4>
+                    {tools.filter((t) => t.group === g).map((t) => <a href={`/tools/${t.slug}/`}>{t.name}</a>)}
+                  </div>
+                ))}
+              </div>
+            </details>
+          </li>
         </ul>
         <span></span>
       </div>
     </header>
     <main><slot /></main>
     <footer class="site">
-      <div class="wrap">© 2026 WebTools. 입력한 내용은 서버에 저장되지 않습니다.</div>
+      <div class="wrap foot">
+        <span>© 2026 {site.name}</span>
+        <nav>{footLinks.map((l) => <a href={l.href}>{l.label}</a>)}</nav>
+      </div>
     </footer>
+    <script>
+      const menu = document.getElementById('menu') as HTMLDetailsElement | null;
+      document.addEventListener('click', (e) => { if (menu && !menu.contains(e.target as Node)) menu.open = false; });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu) menu.open = false; });
+    </script>
   </body>
 </html>

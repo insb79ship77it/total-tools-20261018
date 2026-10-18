@@ -1,0 +1,46 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+---
+<ToolPage title="PX ↔ REM 변환" description="CSS의 px와 rem 단위를 실시간으로 변환하는 계산기." lead="기준 폰트 크기를 정하고 px나 rem 중 한쪽만 입력하면 반대쪽이 바로 계산됩니다.">
+  <div class="card panel">
+    <div class="form-grid">
+      <div class="full">
+        <label class="lbl" for="base">기준 폰트 크기 (px)</label>
+        <input id="base" class="field" type="number" min="1" value="16" />
+      </div>
+      <div>
+        <label class="lbl" for="px">PX</label>
+        <input id="px" class="field" type="number" step="any" placeholder="예: 24" />
+      </div>
+      <div>
+        <label class="lbl" for="rem">REM</label>
+        <input id="rem" class="field" type="number" step="any" placeholder="예: 1.5" />
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl-mini"><thead><tr><th>PX</th><th>REM</th></tr></thead><tbody id="table"></tbody></table>
+    </div>
+  </div>
+  <Fragment slot="guide">
+    <h2>rem이란?</h2>
+    <p>rem은 html 요소의 글꼴 크기를 기준으로 하는 단위예요. 브라우저 기본값은 16px이라서 1rem은 보통 16px입니다. 사용자가 브라우저 글꼴 크기를 바꾸면 rem으로 쓴 크기도 함께 바뀌어 접근성에 유리합니다.</p>
+  </Fragment>
+</ToolPage>
+
+<script>
+  import { $ } from '../../lib/dom';
+  const base = $<HTMLInputElement>('base');
+  const px = $<HTMLInputElement>('px');
+  const rem = $<HTMLInputElement>('rem');
+  const b = () => Number(base.value) || 16;
+  const fmt = (n: number) => String(+n.toFixed(4));
+
+  function table() {
+    $('table').innerHTML = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48]
+      .map((v) => `<tr><td>${v}px</td><td>${fmt(v / b())}rem</td></tr>`).join('');
+  }
+  px.addEventListener('input', () => { rem.value = px.value === '' ? '' : fmt(Number(px.value) / b()); });
+  rem.addEventListener('input', () => { px.value = rem.value === '' ? '' : fmt(Number(rem.value) * b()); });
+  base.addEventListener('input', () => { if (px.value !== '') px.dispatchEvent(new Event('input')); table(); });
+  table();
+</script>

@@ -1,0 +1,50 @@
+---
+import { TRANSFORMS } from '../lib/transforms';
+const { tool, placeholder = '여기에 입력하세요.' } = Astro.props;
+const actions = TRANSFORMS[tool].actions;
+---
+<div class="card panel transform" data-tool={tool}>
+  <div class="two">
+    <div>
+      <label class="lbl" for="tf-in">입력</label>
+      <textarea id="tf-in" class="field" placeholder={placeholder}></textarea>
+    </div>
+    <div>
+      <label class="lbl" for="tf-out">결과</label>
+      <textarea id="tf-out" class="field" readonly></textarea>
+    </div>
+  </div>
+  <div class="btns">
+    {actions.map((a) => <button type="button" class="btn btn-primary btn-sm" data-act={a.id}>{a.label}</button>)}
+    <button type="button" class="btn btn-ghost btn-sm" id="tf-copy">결과 복사</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="tf-swap">결과를 입력으로</button>
+  </div>
+  <p class="err" id="tf-err" hidden></p>
+</div>
+
+<script>
+  import { TRANSFORMS } from '../lib/transforms';
+  import { copy } from '../lib/dom';
+
+  const root = document.querySelector<HTMLElement>('.transform')!;
+  const tool = root.dataset.tool!;
+  const input = document.getElementById('tf-in') as HTMLTextAreaElement;
+  const output = document.getElementById('tf-out') as HTMLTextAreaElement;
+  const err = document.getElementById('tf-err')!;
+
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-act]');
+    if (!b) return;
+    const action = TRANSFORMS[tool].actions.find((a) => a.id === b.dataset.act)!;
+    err.hidden = true;
+    try {
+      output.value = action.fn(input.value);
+    } catch (ex) {
+      output.value = '';
+      err.textContent = (ex as Error).message;
+      err.hidden = false;
+    }
+  });
+  document.getElementById('tf-copy')!.addEventListener('click', (e) => copy(output.value, e.currentTarget as HTMLElement));
+  document.getElementById('tf-swap')!.addEventListener('click', () => { input.value = output.value; output.value = ''; });
+</script>

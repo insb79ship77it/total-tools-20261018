@@ -1,0 +1,64 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+---
+<ToolPage title="랜덤 이름 생성기" description="판타지 이름, 한글 이름, 브랜드명을 무작위로 만들어 주는 이름 생성기." lead="스타일을 고르고 버튼을 누르면 이름 10개가 나옵니다. 마음에 드는 이름을 누르면 복사돼요.">
+  <div class="card panel">
+    <div class="seg" id="seg">
+      <button type="button" class="on" data-style="fantasy">판타지</button>
+      <button type="button" data-style="korean">한글 이름</button>
+      <button type="button" data-style="brand">브랜드명</button>
+    </div>
+    <div class="btns">
+      <button type="button" class="btn btn-primary" id="make">이름 만들기</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <p class="hint" id="hint" hidden>복사했어요.</p>
+  </div>
+  <Fragment slot="guide">
+    <h2>이렇게 쓰세요</h2>
+    <p>게임 캐릭터, 소설 등장인물, 서비스 이름 아이디어를 얻을 때 쓰기 좋아요. 이름은 무작위 조합이라 실제 인물이나 상표와 겹칠 수 있습니다. 브랜드명으로 쓸 계획이라면 상표 검색으로 사용 가능 여부를 꼭 확인하세요.</p>
+  </Fragment>
+</ToolPage>
+
+<script>
+  import { $, copy } from '../../lib/dom';
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+  const gen: Record<string, () => string> = {
+    fantasy: () =>
+      cap(pick(['ael', 'thal', 'kor', 'eld', 'syl', 'mor', 'vaer', 'lun', 'dra', 'fen', 'ith', 'zar', 'bran', 'cal', 'isol']) +
+        pick(['a', 'en', 'ar', 'ia', 'or', 'ith', 'el', '']) +
+        pick(['dor', 'wyn', 'ion', 'thas', 'mir', 'riel', 'gar', 'vyn', 'dris', 'nor'])),
+    korean: () =>
+      pick(['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '전']) +
+      pick(['서', '민', '지', '하', '도', '예', '시', '주', '수', '유', '현', '준', '태', '은', '채']) +
+      pick(['윤', '우', '연', '진', '아', '린', '원', '영', '솔', '빈', '후', '희', '율', '현']),
+    brand: () =>
+      cap(pick(['nova', 'bloom', 'pixel', 'luma', 'zen', 'orbit', 'mint', 'aura', 'flux', 'hive', 'quill', 'terra', 'volt', 'wave'])) +
+      pick(['ly', 'ify', 'hub', 'lab', 'base', 'nest', 'wise', 'able', 'io', 'ra']),
+  };
+
+  let style = 'fantasy';
+  function make() {
+    const set = new Set<string>();
+    while (set.size < 10) set.add(gen[style]());
+    $('chips').innerHTML = [...set].map((n) => `<button type="button" class="chip">${n}</button>`).join('');
+  }
+  $('seg').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (!b) return;
+    style = b.dataset.style!;
+    $('seg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    make();
+  });
+  $('chips').addEventListener('click', async (e) => {
+    const c = (e.target as HTMLElement).closest('.chip');
+    if (!c) return;
+    await copy(c.textContent!);
+    $('hint').hidden = false;
+    setTimeout(() => ($('hint').hidden = true), 1200);
+  });
+  $('make').addEventListener('click', make);
+  make();
+</script>

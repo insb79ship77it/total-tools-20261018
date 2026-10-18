@@ -1,52 +1,50 @@
 ---
 import Base from '../layouts/Base.astro';
-
-const I = {
-  gauge: '<path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
-  type: '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
-  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
-  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
-  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
-};
-const tools = [
-  { href: '/tools/speed/', icon: I.gauge, name: '인터넷 속도체크', desc: '다운로드 속도·핑·지터 측정' },
-  { href: '/tools/char-count/', icon: I.type, name: '글자수 세기', desc: '공백 포함/제외, 바이트 계산' },
-  { href: '/tools/naver-check/', icon: I.search, name: '블로그 누락 체크', desc: '네이버 통합검색·블로그탭 노출 확인' },
-  { icon: I.pin, name: 'IP 조회', desc: '내 IP와 위치 확인', off: true },
-  { icon: I.globe, name: '도메인 WHOIS', desc: '등록일·만료일·네임서버', off: true },
-];
+import { tools, groups, ICONS } from '../data/tools';
+const featured = tools.filter((t) => t.primary);
 ---
 <Base>
   <section class="hero">
     <div class="wrap">
       <div>
         <h1>자주 쓰는 웹 도구,<br /><em>한곳에서</em> 바로 쓰세요.</h1>
-        <p>속도 측정부터 글자수 세기, 네이버 블로그 노출 확인까지. 가입도 설치도 필요 없습니다.</p>
+        <p>속도 측정부터 IP·도메인 조회, 글자수 세기, 네이버 블로그 노출 확인까지. 가입도 설치도 필요 없습니다.</p>
         <div class="actions">
           <a class="btn btn-primary" href="/tools/speed/">속도 측정하기</a>
-          <a class="btn btn-ghost" href="/tools/naver-check/">블로그 누락 체크</a>
+          <a class="btn btn-ghost" href="#all">전체 도구 보기</a>
         </div>
       </div>
       <div class="card">
         <div class="tools-head">
           <span class="ico"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></span>
-          <div><b>도구 목록</b><small>계속 추가하고 있어요</small></div>
+          <div><b>인기 도구</b><small>가장 많이 쓰는 {featured.length}가지</small></div>
         </div>
-        {tools.map((t) =>
-          t.off ? (
-            <div class="tool-row off">
-              <span class="ico"><svg viewBox="0 0 24 24" set:html={t.icon} /></span>
-              <div><b>{t.name}</b><small>{t.desc}</small></div>
-              <span class="tag">준비 중</span>
-            </div>
-          ) : (
-            <a class="tool-row" href={t.href}>
-              <span class="ico"><svg viewBox="0 0 24 24" set:html={t.icon} /></span>
-              <div><b>{t.name}</b><small>{t.desc}</small></div>
-            </a>
-          )
-        )}
+        {featured.map((t) => (
+          <a class="tool-row" href={`/tools/${t.slug}/`}>
+            <span class="ico"><svg viewBox="0 0 24 24" set:html={ICONS[t.icon]} /></span>
+            <div><b>{t.name}</b><small>{t.desc}</small></div>
+          </a>
+        ))}
       </div>
+    </div>
+  </section>
+
+  <section class="all" id="all">
+    <div class="wrap">
+      <h2>전체 도구</h2>
+      {groups.map((g) => (
+        <div class="group">
+          <h3>{g}</h3>
+          <div class="grid">
+            {tools.filter((t) => t.group === g).map((t) => (
+              <a class="tool-card" href={`/tools/${t.slug}/`}>
+                <span class="ico"><svg viewBox="0 0 24 24" set:html={ICONS[t.icon]} /></span>
+                <div><b>{t.name}</b><small>{t.desc}</small></div>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   </section>
 </Base>

@@ -1,0 +1,11 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+import TransformTool from '../../components/TransformTool.astro';
+---
+<ToolPage title="줄바꿈·공백 제거기" description="엔터(줄바꿈)와 불필요한 공백을 한 번에 정리하는 도구." lead="복사한 글의 줄바꿈과 공백을 원하는 방식으로 정리합니다.">
+  <TransformTool tool="line-break" placeholder="정리할 글을 붙여넣으세요." />
+  <Fragment slot="guide">
+    <h2>어떤 버튼을 쓰나요?</h2>
+    <p>PDF나 메신저에서 복사한 글이 줄마다 끊겨 있다면 "줄바꿈을 공백으로"를 쓰세요. 한글 문장을 이어 붙일 때처럼 공백 없이 붙이고 싶다면 "줄바꿈 완전 제거"를 쓰면 됩니다. 문단 사이의 빈 줄만 지우려면 "빈 줄 제거"를 고르세요.</p>
+  </Fragment>
+</ToolPage>
