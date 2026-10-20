@@ -100,7 +100,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const d = new Date(s);
     if (isNaN(+d)) return ['', s];
     const n = dayNum(kstDay(new Date())) - dayNum(kstDay(d));
-    const ago = n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? `${n}일 전` : n < 365 ? `${Math.floor(n / 30)}개월 전` : `${Math.floor(n / 365)}년 전`;
+    const ago = n <= 0 ? '오늘' : n < 30 ? `${n}일 전` : n < 365 ? `${Math.floor(n / 30)}개월 전` : `${Math.floor(n / 365)}년 전`;
     const abs = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
     return [ago, abs];
   }
@@ -134,7 +134,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
           return `<tr>
             <td class="num">${start + i + 1}</td>
             <td class="title-cell"><a href="https://blog.naver.com/${esc(blogId)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a></td>
-            <td class="date-cell"><b>${esc(ago)}</b><span>${esc(abs)}</span></td>
+            <td class="date-cell"><span>${esc(abs)}</span><b>${esc(ago)}</b></td>
             <td class="c">${cell(p.main, p, false)}</td>
             <td class="c">${cell(p.blog, p, true)}</td></tr>`;
         }).join('')
