@@ -49,9 +49,9 @@ export async function onRequestGet({ request }) {
   }
 
   const q = encodeURIComponent(`"${title}"`);
-  const [main, blog] = await Promise.all([
-    inspect(`https://search.naver.com/search.naver?where=nexearch&query=${q}`, blogId, logNo),
-    inspect(`https://search.naver.com/search.naver?ssc=tab.blog.all&query=${q}`, blogId, logNo),
-  ]);
+  // 네이버에 한꺼번에 몰리지 않도록 두 요청을 차례로 보냅니다.
+  const main = await inspect(`https://search.naver.com/search.naver?where=nexearch&query=${q}`, blogId, logNo);
+  await new Promise((r) => setTimeout(r, 400));
+  const blog = await inspect(`https://search.naver.com/search.naver?ssc=tab.blog.all&query=${q}`, blogId, logNo);
   return json({ main, blog });
 }

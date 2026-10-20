@@ -1,92 +1,83 @@
 ---
-import Base from '../../layouts/Base.astro';
+import ToolPage from '../../layouts/ToolPage.astro';
 ---
-<Base title="네이버 블로그 누락 체크" description="네이버 블로그 최근 글이 통합검색과 블로그탭에 노출되는지, 텍스트인지 이미지인지 확인합니다.">
-  <div class="wrap">
-    <section class="page-head">
-      <h1>네이버 블로그 누락 체크</h1>
-      <p>최근 글의 제목을 네이버에서 검색해 통합검색과 블로그탭 노출 여부를 확인합니다.</p>
-    </section>
-
-    <div class="card panel">
-      <div class="row">
-        <input id="blogId" class="field" type="text" placeholder="블로그 아이디 또는 주소 (예: myblogid)" aria-label="네이버 블로그 아이디" autocomplete="off" />
-        <button id="go" class="btn btn-primary" type="button">조회하기</button>
-      </div>
-      <p class="err" id="error" hidden></p>
+<ToolPage title="네이버 블로그 누락 체크" description="네이버 블로그 최근 글이 통합검색과 블로그탭에 노출되는지, 텍스트인지 이미지인지 확인합니다." lead="최근 글의 제목을 네이버에서 검색해 통합검색과 블로그탭 노출 여부를 확인합니다.">
+  <div class="card panel">
+    <div class="row">
+      <input id="blogId" class="field" type="text" placeholder="블로그 아이디 또는 주소 (예: myblogid)" aria-label="네이버 블로그 아이디" autocomplete="off" />
+      <button id="go" class="btn btn-primary" type="button">조회하기</button>
     </div>
-
-    <div class="card" id="result" hidden>
-      <div class="res-head">
-        <div>
-          <h2 id="blogTitle">-</h2>
-          <a id="blogUrl" href="#" target="_blank" rel="noopener">-</a>
-        </div>
-        <div class="sum">
-          <span class="badge b-gray" id="s-total">전체 0</span>
-          <span class="badge b-green" id="s-main">통합 노출 0</span>
-          <span class="badge b-blue" id="s-blog">블로그탭만 0</span>
-          <span class="badge b-red" id="s-none">누락 0</span>
-        </div>
-      </div>
-      <div class="prog"><div id="prog"></div></div>
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr><th>상태</th><th>글 제목</th><th>발행일</th><th>통합검색</th><th>블로그탭</th><th>바로가기</th></tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-      <div class="pager" id="pager"></div>
-    </div>
-
-    <section class="guide">
-      <h2>결과 보는 법</h2>
-      <h3>통합 노출 / 블로그탭만 / 누락</h3>
-      <p>통합검색 결과에 글이 있으면 통합 노출, 통합검색에는 없고 블로그탭에만 있으면 블로그탭만, 둘 다 없으면 누락입니다.</p>
-      <h3>텍스트와 이미지</h3>
-      <p>검색 결과에서 글 제목 링크로 나오면 텍스트, 썸네일 이미지 링크로만 나오면 이미지로 표시합니다.</p>
-      <h3>참고하세요</h3>
-      <p>발행 직후의 글은 검색에 반영되기까지 시간이 걸려 누락으로 보일 수 있습니다. 최근 50개 글까지 확인하며, 네이버 화면 구조가 바뀌면 결과가 달라질 수 있습니다.</p>
-    </section>
+    <p class="err" id="error" hidden></p>
   </div>
-</Base>
+
+  <div class="card" id="result" hidden>
+    <div class="res-head">
+      <div>
+        <h2 id="blogTitle">-</h2>
+        <a id="blogUrl" href="#" target="_blank" rel="noopener">-</a>
+      </div>
+      <div class="sum">
+        <span class="badge b-gray" id="s-total">전체 0</span>
+        <span class="badge b-green" id="s-ok">노출 0</span>
+        <span class="badge b-red" id="s-no">누락 0</span>
+        <span class="badge b-amber" id="s-err">확인 실패 0</span>
+      </div>
+    </div>
+    <div class="runbar">
+      <span class="dot idle" id="dot"></span>
+      <span class="grow" id="status">대기 중</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="stop" hidden>중지</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="retry" hidden>남은 항목 다시 확인</button>
+    </div>
+    <div class="prog"><div id="prog"></div></div>
+    <div class="tbl-wrap">
+      <table class="posts">
+        <thead>
+          <tr><th class="num">번호</th><th>글 제목</th><th>발행일</th><th class="c">통합검색</th><th class="c">블로그탭</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pager"></div>
+  </div>
+
+  <Fragment slot="guide">
+    <h2>결과 보는 법</h2>
+    <h3>상태 색깔</h3>
+    <p>초록은 검색 결과에서 글이 보인다는 뜻이고 텍스트 또는 이미지로 노출됐는지도 함께 적어요. 빨강은 검색 결과에 없는 누락, 주황은 네이버가 응답하지 않아 확인하지 못한 경우입니다. 상태 버튼을 누르면 해당 검색 결과가 새 창으로 열려요.</p>
+    <h3>천천히 확인하는 이유</h3>
+    <p>네이버에 요청이 한꺼번에 몰리면 응답을 막아서 확인 실패가 늘어납니다. 그래서 글을 하나씩 간격을 두고 확인하며, 실패한 글은 자동으로 다시 시도해요. 글이 50개면 몇 분 걸릴 수 있습니다.</p>
+    <h3>참고하세요</h3>
+    <p>발행 직후의 글은 검색에 반영되기까지 시간이 걸려 누락으로 보일 수 있습니다. 최근 50개 글까지 확인하며, 네이버 화면 구조가 바뀌면 결과가 달라질 수 있습니다.</p>
+  </Fragment>
+</ToolPage>
 
 <script>
   type Hit = 'text' | 'image' | 'none' | 'error' | null;
-  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit };
+  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; busy: boolean };
 
   const $ = (id: string) => document.getElementById(id)!;
   const PAGE = 10;
+  const DELAY = 1000;   // 글과 글 사이 기본 대기(ms)
+  const JITTER = 700;   // 여기에 0~700ms를 더 랜덤으로 붙입니다
+  const RETRIES = 3;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   let posts: Post[] = [];
   let page = 1;
   let blogId = '';
-
-  const HIT: Record<string, [string, string]> = {
-    text: ['텍스트', 'b-blue'],
-    image: ['이미지', 'b-violet'],
-    none: ['없음', 'b-gray'],
-    error: ['확인 실패', 'b-amber'],
-  };
+  let running = false;
+  let stopped = false;
 
   const esc = (s: string) =>
     s.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]!);
 
   const found = (h: Hit) => h === 'text' || h === 'image';
-  const kind = (p: Post) =>
-    p.main === null || p.blog === null ? 'pending'
-    : found(p.main) ? 'main'
-    : found(p.blog) ? 'blog'
-    : p.main === 'error' || p.blog === 'error' ? 'error'
-    : 'none';
-  const STATUS: Record<string, [string, string]> = {
-    pending: ['확인 중', 'b-gray'],
-    main: ['통합 노출', 'b-green'],
-    blog: ['블로그탭만', 'b-blue'],
-    none: ['누락', 'b-red'],
-    error: ['확인 실패', 'b-amber'],
-  };
+  const state = (p: Post) =>
+    found(p.main) || found(p.blog) ? 'ok'
+    : p.main === null || p.blog === null ? 'wait'
+    : p.main === 'error' || p.blog === 'error' ? 'err'
+    : 'no';
 
   const searchUrl = (title: string, tab: boolean) =>
     `https://search.naver.com/search.naver?${tab ? 'ssc=tab.blog.all&' : ''}query=${encodeURIComponent(`"${title}"`)}`;
@@ -96,40 +87,48 @@ import Base from '../../layouts/Base.astro';
     return (m ? m[1] : v.trim()).replace(/^@/, '');
   };
 
-  const fmtDate = (s: string) => {
+  // 발행일: "3일 전" + 실제 날짜
+  const kstDay = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const dayNum = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+  function when(s: string): [string, string] {
     const d = new Date(s);
-    return isNaN(+d) ? s : d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' });
-  };
+    if (isNaN(+d)) return ['', s];
+    const n = dayNum(kstDay(new Date())) - dayNum(kstDay(d));
+    const ago = n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? `${n}일 전` : n < 365 ? `${Math.floor(n / 30)}개월 전` : `${Math.floor(n / 365)}년 전`;
+    const abs = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    return [ago, abs];
+  }
 
-  function hitBadge(h: Hit) {
-    const [label, cls] = h === null ? ['확인 중', 'b-gray'] : HIT[h];
-    return `<span class="badge ${cls}">${label}</span>`;
+  function cell(h: Hit, p: Post, tab: boolean) {
+    if (h === null) return p.busy ? '<span class="st st-busy">확인 중…</span>' : '<span class="st st-wait">대기</span>';
+    const [cls, label] =
+      h === 'text' ? ['st-ok', '텍스트 노출']
+      : h === 'image' ? ['st-ok', '이미지 노출']
+      : h === 'none' ? ['st-no', '미노출']
+      : ['st-err', '확인 실패'];
+    return `<a class="st ${cls}" href="${searchUrl(p.title, tab)}" target="_blank" rel="noopener">${label}</a>`;
   }
 
   function render() {
-    const kinds = posts.map(kind);
+    const st = posts.map(state);
     $('s-total').textContent = `전체 ${posts.length}`;
-    $('s-main').textContent = `통합 노출 ${kinds.filter((k) => k === 'main').length}`;
-    $('s-blog').textContent = `블로그탭만 ${kinds.filter((k) => k === 'blog').length}`;
-    $('s-none').textContent = `누락 ${kinds.filter((k) => k === 'none').length}`;
+    $('s-ok').textContent = `노출 ${st.filter((k) => k === 'ok').length}`;
+    $('s-no').textContent = `누락 ${st.filter((k) => k === 'no').length}`;
+    $('s-err').textContent = `확인 실패 ${st.filter((k) => k === 'err').length}`;
 
-    const slice = posts.slice((page - 1) * PAGE, page * PAGE);
+    const start = (page - 1) * PAGE;
+    const slice = posts.slice(start, start + PAGE);
     $('rows').innerHTML = slice.length
-      ? slice.map((p) => {
-          const [label, cls] = STATUS[kind(p)];
+      ? slice.map((p, i) => {
+          const [ago, abs] = when(p.pubDate);
           return `<tr>
-            <td><span class="badge ${cls}">${label}</span></td>
-            <td class="title-cell">${esc(p.title)}</td>
-            <td class="date-cell">${esc(fmtDate(p.pubDate))}</td>
-            <td>${hitBadge(p.main)}</td>
-            <td>${hitBadge(p.blog)}</td>
-            <td class="links">
-              <a href="https://blog.naver.com/${esc(blogId)}/${p.logNo}" target="_blank" rel="noopener">블로그글</a>
-              <a href="${searchUrl(p.title, false)}" target="_blank" rel="noopener">통합검색</a>
-              <a href="${searchUrl(p.title, true)}" target="_blank" rel="noopener">블로그탭</a>
-            </td></tr>`;
+            <td class="num">${start + i + 1}</td>
+            <td class="title-cell"><a href="https://blog.naver.com/${esc(blogId)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a></td>
+            <td class="date-cell"><b>${esc(ago)}</b><span>${esc(abs)}</span></td>
+            <td class="c">${cell(p.main, p, false)}</td>
+            <td class="c">${cell(p.blog, p, true)}</td></tr>`;
         }).join('')
-      : '<tr><td colspan="6" style="text-align:center;color:#6f7d97">조회된 글이 없습니다.</td></tr>';
+      : '<tr><td colspan="5" style="text-align:center;color:#6f7d97">조회된 글이 없습니다.</td></tr>';
 
     const pages = Math.ceil(posts.length / PAGE);
     $('pager').innerHTML = pages > 1
@@ -137,24 +136,66 @@ import Base from '../../layouts/Base.astro';
       : '';
   }
 
-  async function checkAll() {
-    let next = 0, done = 0;
-    const worker = async () => {
-      while (next < posts.length) {
-        const p = posts[next++];
-        try {
-          const qs = new URLSearchParams({ blogId, logNo: p.logNo, title: p.title });
-          const d = await (await fetch(`/api/naver-check?${qs}`)).json();
-          p.main = d.main || 'error';
-          p.blog = d.blog || 'error';
-        } catch {
-          p.main = p.blog = 'error';
-        }
-        $('prog').style.width = (++done / posts.length) * 100 + '%';
-        render();
+  function setStatus(text: string, mode: 'run' | 'wait' | 'idle') {
+    $('status').textContent = text;
+    $('dot').className = 'dot' + (mode === 'idle' ? ' idle' : mode === 'wait' ? ' slow' : '');
+  }
+
+  async function checkOne(p: Post) {
+    let main: Hit = null;
+    let blog: Hit = null;
+    for (let a = 0; a < RETRIES; a++) {
+      try {
+        const qs = new URLSearchParams({ blogId, logNo: p.logNo, title: p.title });
+        const d = await (await fetch(`/api/naver-check?${qs}`)).json();
+        if (main === null || main === 'error') main = d.main || 'error';
+        if (blog === null || blog === 'error') blog = d.blog || 'error';
+      } catch {
+        if (main === null) main = 'error';
+        if (blog === null) blog = 'error';
       }
-    };
-    await Promise.all([worker(), worker(), worker()]);
+      if (main !== 'error' && blog !== 'error') break;
+      if (stopped || a === RETRIES - 1) break;
+      setStatus(`네이버 응답이 없어 잠시 후 다시 시도합니다 (${a + 1}/${RETRIES - 1})`, 'wait');
+      await sleep(2500 * (a + 1));
+    }
+    p.main = main;
+    p.blog = blog;
+  }
+
+  async function runQueue(indices: number[]) {
+    running = true;
+    stopped = false;
+    $('go').setAttribute('disabled', '');
+    ($('stop') as HTMLElement).hidden = false;
+    ($('retry') as HTMLElement).hidden = true;
+    let done = 0;
+    const total = indices.length;
+    $('prog').style.width = '0';
+
+    for (const idx of indices) {
+      if (stopped) break;
+      const p = posts[idx];
+      p.busy = true;
+      setStatus(`확인 중 · ${done + 1} / ${total}번째 글`, 'run');
+      render();
+      await checkOne(p);
+      p.busy = false;
+      done++;
+      $('prog').style.width = (done / total) * 100 + '%';
+      render();
+      if (stopped || done >= total) break;
+      setStatus(`요청이 몰리지 않게 잠시 쉬는 중 · ${done} / ${total} 완료, 남은 글 ${total - done}개`, 'wait');
+      await sleep(DELAY + Math.random() * JITTER);
+    }
+
+    running = false;
+    $('go').removeAttribute('disabled');
+    ($('stop') as HTMLElement).hidden = true;
+    const left = posts.filter((p) => state(p) === 'wait' || state(p) === 'err').length;
+    ($('retry') as HTMLElement).hidden = left === 0;
+    setStatus(stopped ? `중지했어요. 확인하지 못한 글 ${left}개` : left ? `완료 · 확인하지 못한 글 ${left}개` : '모든 글 확인을 마쳤어요', 'idle');
+    render();
   }
 
   async function run() {
@@ -172,25 +213,34 @@ import Base from '../../layouts/Base.astro';
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
 
-      posts = d.posts.map((p: Omit<Post, 'main' | 'blog'>) => ({ ...p, main: null, blog: null }));
+      posts = d.posts.map((p: Omit<Post, 'main' | 'blog' | 'busy'>) => ({ ...p, main: null, blog: null, busy: false }));
       page = 1;
       $('blogTitle').textContent = d.blogTitle;
       const a = $('blogUrl') as HTMLAnchorElement;
       a.textContent = a.href = `https://blog.naver.com/${blogId}`;
-      $('prog').style.width = '0';
       $('result').hidden = false;
       render();
-      await checkAll();
+      btn.textContent = '다시 조회';
+      await runQueue(posts.map((_, i) => i));
     } catch (e) {
       err.textContent = (e as Error).message || '조회에 실패했습니다.';
       err.hidden = false;
+      btn.disabled = false;
+      btn.textContent = '조회하기';
     }
     btn.disabled = false;
     btn.textContent = '다시 조회';
   }
 
   $('go').addEventListener('click', run);
-  $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') run(); });
+  $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' && !running) run(); });
+  $('stop').addEventListener('click', () => { stopped = true; setStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); });
+  $('retry').addEventListener('click', () => {
+    if (running) return;
+    const idx = posts.map((p, i) => (state(p) === 'wait' || state(p) === 'err' ? i : -1)).filter((i) => i >= 0);
+    idx.forEach((i) => { posts[i].main = null; posts[i].blog = null; });
+    runQueue(idx);
+  });
   $('pager').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest('button');
     if (b) { page = Number(b.dataset.p); render(); }

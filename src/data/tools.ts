@@ -27,15 +27,16 @@ export type Tool = {
 };
 
 export const groups = ['네트워크', '블로그·마케팅', '텍스트', '개발·계산'];
+export const groupKey: Record<string, string> = { '네트워크': 'net', '블로그·마케팅': 'blog', '텍스트': 'text', '개발·계산': 'dev' };
 
 export const tools: Tool[] = [
   { slug: 'speed', name: '인터넷 속도체크', short: '속도체크', desc: '다운로드 속도·핑·지터 측정', icon: 'speed', group: '네트워크', primary: true },
   { slug: 'ip', name: 'IP 주소 조회', short: 'IP 조회', desc: '내 IP와 위치, 통신사 확인', icon: 'ip', group: '네트워크', primary: true },
-  { slug: 'domain', name: '도메인 WHOIS 조회', short: '도메인 조회', desc: '등록일·만료일·네임서버 확인', icon: 'domain', group: '네트워크', primary: true },
-  { slug: 'naver-check', name: '블로그 누락 체크', short: '블로그 체크', desc: '네이버 통합검색·블로그탭 노출 확인', icon: 'blog', group: '블로그·마케팅', primary: true },
+  { slug: 'domain', name: '도메인 WHOIS 조회', short: '후이즈 조회', desc: '등록일·만료일·네임서버 확인', icon: 'domain', group: '네트워크', primary: true },
+  { slug: 'naver-check', name: '블로그 누락 체크', short: '블로그 누락 체크', desc: '네이버 통합검색·블로그탭 노출 확인', icon: 'blog', group: '블로그·마케팅', primary: true },
   { slug: 'link-mapping', name: '링크 텍스트 매핑', short: '링크 매핑', desc: '줄마다 링크를 걸어 HTML 만들기', icon: 'link', group: '블로그·마케팅' },
   { slug: 'utm', name: 'UTM 생성기', short: 'UTM', desc: '마케팅 추적용 URL 자동 조합', icon: 'utm', group: '블로그·마케팅' },
-  { slug: 'char-count', name: '글자수 세기', short: '글자수', desc: '공백 포함/제외, 바이트 계산', icon: 'char', group: '텍스트', primary: true },
+  { slug: 'char-count', name: '글자수 세기', short: '글자수 세기', desc: '공백 포함/제외, 바이트 계산', icon: 'char', group: '텍스트', primary: true },
   { slug: 'line-break', name: '줄바꿈·공백 제거기', short: '줄바꿈 제거', desc: '엔터와 불필요한 공백 정리', icon: 'linebreak', group: '텍스트' },
   { slug: 'case', name: '대소문자 변환', short: '대소문자', desc: '대/소문자, snake_case 등 변환', icon: 'case', group: '텍스트' },
   { slug: 'random-name', name: '랜덤 이름 생성기', short: '랜덤 이름', desc: '판타지·한글·브랜드 이름 생성', icon: 'dice', group: '텍스트' },

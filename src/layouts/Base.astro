@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { tools, groups } from '../data/tools';
+import { tools, groups, groupKey } from '../data/tools';
 import { site } from '../data/site';
 
 const { title, description = '속도체크, IP 조회, 도메인 조회, 글자수 세기, 네이버 블로그 노출 확인까지. 자주 쓰는 웹 도구 모음.' } = Astro.props;
@@ -40,7 +40,7 @@ const footLinks = [
               <summary>전체 도구</summary>
               <div class="menu-panel">
                 {groups.map((g) => (
-                  <div>
+                  <div class={`gx g-${groupKey[g]}`}>
                     <h4>{g}</h4>
                     {tools.filter((t) => t.group === g).map((t) => <a href={`/tools/${t.slug}/`}>{t.name}</a>)}
                   </div>

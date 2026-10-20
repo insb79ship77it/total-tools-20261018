@@ -16,7 +16,7 @@ import { site } from '../data/site';
     <ul>
       <li><b>글자수 세기, 줄바꿈 제거, 대소문자 변환, JSON, Base64, URL 인코딩, UTM, 링크 매핑, 랜덤 이름, PX·REM, D-Day:</b> 입력한 내용은 이용자의 브라우저 안에서만 처리되며 서버로 전송되지 않습니다.</li>
       <li><b>네이버 블로그 누락 체크:</b> 입력한 블로그 아이디와 글 제목이 서비스 서버(Cloudflare)를 거쳐 네이버로 전달되어 검색 결과를 확인합니다. 서비스는 이 정보를 저장하지 않습니다. 편의를 위해 입력한 블로그 아이디는 이용자 기기의 브라우저 저장소(localStorage)에만 보관되며, 브라우저 설정에서 삭제할 수 있습니다.</li>
-      <li><b>IP 조회:</b> 접속 IP와 대략적인 위치는 Cloudflare가 제공하는 정보로 표시합니다. 다른 IP 주소를 직접 입력해 조회하면 그 주소가 외부 조회 서비스(ipwho.is)로 전달됩니다. 위치를 보여주는 지도는 OpenStreetMap에서 불러옵니다.</li>
+      <li><b>IP 조회:</b> 접속 IP와 대략적인 위치는 Cloudflare가 제공하는 정보로 표시합니다. 다른 IP 주소를 직접 입력해 조회하면 그 주소가 외부 IP 정보 서비스(ipwho.is, ipinfo.io, ip-api.com)로 전달됩니다. 위치를 보여주는 지도는 OpenStreetMap에서 불러옵니다.</li>
       <li><b>도메인 WHOIS 조회:</b> 입력한 도메인이 공개 도메인 등록 정보 서비스(RDAP)로 전달됩니다.</li>
       <li><b>속도체크:</b> 측정을 위해 Cloudflare의 측정 서버와 통신하며, 측정 결과는 저장하지 않습니다.</li>
     </ul>
@@ -28,7 +28,7 @@ import { site } from '../data/site';
     <ul>
       <li>Cloudflare: 사이트 호스팅과 접속 처리, 속도 측정</li>
       <li>jsDelivr: 웹폰트(Pretendard) 제공</li>
-      <li>ipwho.is: 입력한 IP 주소의 위치 조회</li>
+      <li>ipwho.is, ipinfo.io, ip-api.com: 입력한 IP 주소의 위치 조회</li>
       <li>RDAP 서비스(rdap.org 등): 도메인 등록 정보 조회</li>
       <li>OpenStreetMap: IP 위치 지도 표시</li>
       <li>네이버: 블로그 RSS와 검색 결과 확인</li>

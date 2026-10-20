@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { tools, groups, ICONS } from '../data/tools';
+import { tools, groups, groupKey, ICONS } from '../data/tools';
 const featured = tools.filter((t) => t.primary);
 ---
 <Base>
@@ -33,8 +33,8 @@ const featured = tools.filter((t) => t.primary);
     <div class="wrap">
       <h2>전체 도구</h2>
       {groups.map((g) => (
-        <div class="group">
-          <h3>{g}</h3>
+        <div class={`group gx g-${groupKey[g]}`}>
+          <h3 class="ghead">{g}<small>{tools.filter((t) => t.group === g).length}개</small></h3>
           <div class="grid">
             {tools.filter((t) => t.group === g).map((t) => (
               <a class="tool-card" href={`/tools/${t.slug}/`}>
