@@ -3,7 +3,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
 ---
 <ToolPage title="IP 주소 조회" description="내 공인 IP 주소와 위치, 통신사를 확인하고 다른 IP도 조회할 수 있는 IP 조회 도구." lead="내 공인 IP와 접속 환경을 확인하고, 궁금한 IP 주소의 위치와 통신사도 조회합니다.">
   <div class="card panel">
-    <p class="note" style="margin:0 0 4px">내 공인 IP</p>
+    <p class="note" id="iplabel" style="margin:0 0 4px">내 공인 IP</p>
     <p class="big" id="myip">조회 중…</p>
     <div class="row">
       <input id="q" class="field" type="text" placeholder="조회할 IP 주소 (예: 8.8.8.8)" aria-label="조회할 IP 주소" />
@@ -72,7 +72,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const btn = $<HTMLButtonElement>('go');
     btn.disabled = true;
     try {
-      fill(await lookup($<HTMLInputElement>('q').value.trim() || undefined));
+      const q = $<HTMLInputElement>('q').value.trim();
+      const d = await lookup(q || undefined);
+      fill(d);
+      $('myip').textContent = d.ip || q;
+      $('iplabel').textContent = q ? '조회한 IP' : '내 공인 IP';
     } catch (e) {
       err.textContent = (e as Error).message;
       err.hidden = false;
