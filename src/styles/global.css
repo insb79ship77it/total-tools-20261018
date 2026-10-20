@@ -216,4 +216,4 @@ a.st:hover{filter:brightness(.95);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
 .date-cell span{margin-right:8px}
 .pager button.done::after{content:" ✓";font-size:.75em}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:14px 22px;border-radius:12px;font-weight:600;font-size:.92rem;box-shadow:0 12px 32px rgba(20,40,90,.3);z-index:30;max-width:92vw;text-align:center}
-.table.posts td{padding:2px 14px}
+.table.posts td{padding:6px 14px}
