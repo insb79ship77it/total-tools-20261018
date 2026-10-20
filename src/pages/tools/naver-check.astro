@@ -26,8 +26,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <div class="runbar">
       <span class="dot idle" id="dot"></span>
       <span class="grow" id="status">대기 중</span>
-      <button type="button" class="btn btn-ghost btn-sm" id="stop" hidden>중지</button>
-      <button type="button" class="btn btn-ghost btn-sm" id="retry" hidden>남은 항목 다시 확인</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="retry" hidden>이 페이지 실패 항목 다시 확인</button>
     </div>
     <div class="prog"><div id="prog"></div></div>
     <div class="tbl-wrap">
@@ -41,12 +40,14 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <div class="pager" id="pager"></div>
   </div>
 
+  <div class="toast" id="toast" role="status" hidden></div>
+
   <Fragment slot="guide">
     <h2>결과 보는 법</h2>
     <h3>상태 색깔</h3>
     <p>초록은 검색 결과에서 글이 보인다는 뜻이고 텍스트 또는 이미지로 노출됐는지도 함께 적어요. 빨강은 검색 결과에 없는 누락, 주황은 네이버가 응답하지 않아 확인하지 못한 경우입니다. 상태 버튼을 누르면 해당 검색 결과가 새 창으로 열려요.</p>
     <h3>천천히 확인하는 이유</h3>
-    <p>네이버에 요청이 한꺼번에 몰리면 응답을 막아서 확인 실패가 늘어납니다. 그래서 글을 하나씩 간격을 두고 확인하며, 실패한 글은 자동으로 다시 시도해요. 글이 50개면 몇 분 걸릴 수 있습니다.</p>
+    <p>네이버에 요청이 한꺼번에 몰리면 응답을 막아서 확인 실패가 늘어납니다. 그래서 한 페이지(10개)씩, 글을 하나씩 간격을 두고 확인하고 실패한 글은 자동으로 다시 시도해요. 페이지가 끝나면 결과를 한꺼번에 보여주고, 다른 페이지 번호를 누르면 그때 그 페이지를 확인합니다.</p>
     <h3>참고하세요</h3>
     <p>발행 직후의 글은 검색에 반영되기까지 시간이 걸려 누락으로 보일 수 있습니다. 최근 50개 글까지 확인하며, 네이버 화면 구조가 바뀌면 결과가 달라질 수 있습니다.</p>
   </Fragment>
@@ -54,7 +55,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
 <script>
   type Hit = 'text' | 'image' | 'none' | 'error' | null;
-  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; busy: boolean; note: string };
+  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; note: string };
+  type PState = 'queued' | 'running' | 'done';
 
   const $ = (id: string) => document.getElementById(id)!;
   const PAGE = 10;
@@ -66,8 +68,12 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let posts: Post[] = [];
   let page = 1;
   let blogId = '';
-  let running = false;
-  let stopped = false;
+  let pageState: Record<number, PState> = {};
+  let queue: number[] = [];
+  let working = false;
+  let curPage = 0, curDone = 0, curTotal = 0, startedAt = 0;
+  let phase: 'check' | 'rest' | 'retry' = 'check';
+  let toastTimer = 0;
 
   const esc = (s: string) =>
     s.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]!);
@@ -99,8 +105,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
     return [ago, abs];
   }
 
+  // 페이지 확인이 끝나기 전에는 결과를 보여주지 않습니다.
   function cell(h: Hit, p: Post, tab: boolean) {
-    if (h === null) return p.busy ? '<span class="st st-busy">확인 중…</span>' : '<span class="st st-wait">대기</span>';
+    if (pageState[page] !== 'done' || h === null) {
+      return `<span class="st st-wait">${pageState[page] === 'running' ? '확인 중…' : '대기'}</span>`;
+    }
     const [cls, label] =
       h === 'text' ? ['st-ok', '텍스트 노출']
       : h === 'image' ? ['st-ok', '이미지 노출']
@@ -111,11 +120,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
 
   function render() {
-    const st = posts.map(state);
+    const shown = posts.filter((_, i) => pageState[Math.floor(i / PAGE) + 1] === 'done');
     $('s-total').textContent = `전체 ${posts.length}`;
-    $('s-ok').textContent = `노출 ${st.filter((k) => k === 'ok').length}`;
-    $('s-no').textContent = `누락 ${st.filter((k) => k === 'no').length}`;
-    $('s-err').textContent = `확인 실패 ${st.filter((k) => k === 'err').length}`;
+    $('s-ok').textContent = `노출 ${shown.filter((p) => state(p) === 'ok').length}`;
+    $('s-no').textContent = `누락 ${shown.filter((p) => state(p) === 'no').length}`;
+    $('s-err').textContent = `확인 실패 ${shown.filter((p) => state(p) === 'err').length}`;
 
     const start = (page - 1) * PAGE;
     const slice = posts.slice(start, start + PAGE);
@@ -133,14 +142,40 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
     const pages = Math.ceil(posts.length / PAGE);
     $('pager').innerHTML = pages > 1
-      ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === page ? 'on' : ''}">${i + 1}</button>`).join('')
+      ? Array.from({ length: pages }, (_, i) => {
+          const n = i + 1;
+          const cls = [n === page ? 'on' : '', pageState[n] === 'done' ? 'done' : ''].join(' ').trim();
+          return `<button type="button" data-p="${n}" class="${cls}">${n}</button>`;
+        }).join('')
       : '';
+
+    ($('retry') as HTMLElement).hidden = !(
+      pageState[page] === 'done' && !working && slice.some((p) => state(p) === 'err' || state(p) === 'wait')
+    );
   }
 
   function setStatus(text: string, mode: 'run' | 'wait' | 'idle') {
     $('status').textContent = text;
     $('dot').className = 'dot' + (mode === 'idle' ? ' idle' : mode === 'wait' ? ' slow' : '');
   }
+
+  function toast(msg: string) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => (t.hidden = true), 5000);
+  }
+
+  // 진행 상황: "n페이지 확인 중 · 3/10번째 · 소요시간 12초 진행중"
+  function tick() {
+    if (!working || !curPage) return;
+    const sec = Math.floor((Date.now() - startedAt) / 1000);
+    const n = Math.min(curDone + 1, curTotal);
+    const extra = phase === 'rest' ? ' · 요청이 몰리지 않게 잠시 쉬는 중' : phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
+    setStatus(`${curPage}페이지 확인 중 · ${n}/${curTotal}번째 · 소요시간 ${sec}초 진행중${extra}`, phase === 'check' ? 'run' : 'wait');
+  }
+  setInterval(tick, 500);
 
   async function checkOne(p: Post) {
     let main: Hit = null;
@@ -161,56 +196,78 @@ import ToolPage from '../../layouts/ToolPage.astro';
         if (blog === null) blog = 'error';
       }
       if (main !== 'error' && blog !== 'error') { note = ''; break; }
-      if (stopped || a === RETRIES - 1) break;
-      setStatus(`네이버 응답이 없어 잠시 후 다시 시도합니다 (${a + 1}/${RETRIES - 1})`, 'wait');
+      if (a === RETRIES - 1) break;
+      phase = 'retry';
       await sleep(2500 * (a + 1));
     }
     p.main = main;
     p.blog = blog;
     p.note = note;
+    phase = 'check';
   }
 
-  async function runQueue(indices: number[]) {
-    running = true;
-    stopped = false;
-    $('go').setAttribute('disabled', '');
-    ($('stop') as HTMLElement).hidden = false;
-    ($('retry') as HTMLElement).hidden = true;
-    let done = 0;
-    const total = indices.length;
-    $('prog').style.width = '0';
+  async function runPage(n: number, onlyFailed = false) {
+    const from = (n - 1) * PAGE;
+    const to = Math.min(n * PAGE, posts.length);
+    const idx: number[] = [];
+    for (let i = from; i < to; i++) if (!onlyFailed || state(posts[i]) !== 'ok') idx.push(i);
+    if (onlyFailed) idx.forEach((i) => { posts[i].main = null; posts[i].blog = null; posts[i].note = ''; });
 
-    for (const idx of indices) {
-      if (stopped) break;
-      const p = posts[idx];
-      p.busy = true;
-      setStatus(`확인 중 · ${done + 1} / ${total}번째 글`, 'run');
-      render();
-      await checkOne(p);
-      p.busy = false;
-      done++;
-      $('prog').style.width = (done / total) * 100 + '%';
-      render();
-      if (stopped || done >= total) break;
-      setStatus(`요청이 몰리지 않게 잠시 쉬는 중 · ${done} / ${total} 완료, 남은 글 ${total - done}개`, 'wait');
-      await sleep(DELAY + Math.random() * JITTER);
+    pageState[n] = 'running';
+    curPage = n; curDone = 0; curTotal = idx.length; startedAt = Date.now(); phase = 'check';
+    render();
+    tick();
+
+    for (let k = 0; k < idx.length; k++) {
+      curDone = k;
+      phase = 'check';
+      tick();
+      await checkOne(posts[idx[k]]);
+      curDone = k + 1;
+      if (k < idx.length - 1) {
+        phase = 'rest';
+        tick();
+        await sleep(DELAY + Math.random() * JITTER);
+      }
     }
 
-    running = false;
-    $('go').removeAttribute('disabled');
-    ($('stop') as HTMLElement).hidden = true;
-    const left = posts.filter((p) => state(p) === 'wait' || state(p) === 'err').length;
-    ($('retry') as HTMLElement).hidden = left === 0;
-    const why = posts.find((p) => state(p) === 'err' && p.note)?.note;
-    setStatus(
-      stopped ? `중지했어요. 확인하지 못한 글 ${left}개`
-      : left ? `완료 · 확인하지 못한 글 ${left}개${why ? ` · 원인: ${why}` : ''}`
-      : '모든 글 확인을 마쳤어요',
-      'idle');
+    pageState[n] = 'done';
+    const sec = Math.round((Date.now() - startedAt) / 1000);
+    const sl = posts.slice(from, to);
+    const count = (k: string) => sl.filter((p) => state(p) === k).length;
+    const msg = `${n}페이지 확인 완료 · 소요시간 ${sec}초 (노출 ${count('ok')} · 누락 ${count('no')} · 확인 실패 ${count('err')})`;
+    toast(msg);
+    if (queue.length === 0) setStatus(msg, 'idle');
     render();
   }
 
+  function setBusy(b: boolean) {
+    ($('go') as HTMLButtonElement).disabled = b;
+  }
+
+  async function pump() {
+    if (working) return;
+    working = true;
+    setBusy(true);
+    try {
+      while (queue.length) await runPage(queue.shift()!);
+    } finally {
+      working = false;
+      setBusy(false);
+      render();
+    }
+  }
+
+  function enqueue(n: number) {
+    if (pageState[n]) return;
+    pageState[n] = 'queued';
+    queue.push(n);
+    render();
+    pump();
+  }
+
   async function run() {
+    if (working) return;
     const err = $('error');
     err.hidden = true;
     blogId = parseId(($('blogId') as HTMLInputElement).value);
@@ -225,37 +282,41 @@ import ToolPage from '../../layouts/ToolPage.astro';
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
 
-      posts = d.posts.map((p: Omit<Post, 'main' | 'blog' | 'busy' | 'note'>) => ({ ...p, main: null, blog: null, busy: false, note: '' }));
+      posts = d.posts.map((p: Omit<Post, 'main' | 'blog' | 'note'>) => ({ ...p, main: null, blog: null, note: '' }));
+      pageState = {};
+      queue = [];
       page = 1;
       $('blogTitle').textContent = d.blogTitle;
       const a = $('blogUrl') as HTMLAnchorElement;
       a.textContent = a.href = `https://blog.naver.com/${blogId}`;
       $('result').hidden = false;
-      render();
+      setStatus('대기 중', 'idle');
       btn.textContent = '다시 조회';
-      await runQueue(posts.map((_, i) => i));
+      enqueue(1);
     } catch (e) {
       err.textContent = (e as Error).message || '조회에 실패했습니다.';
       err.hidden = false;
-      btn.disabled = false;
       btn.textContent = '조회하기';
     }
-    btn.disabled = false;
-    btn.textContent = '다시 조회';
+    btn.disabled = working;
   }
 
   $('go').addEventListener('click', run);
-  $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' && !running) run(); });
-  $('stop').addEventListener('click', () => { stopped = true; setStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); });
-  $('retry').addEventListener('click', () => {
-    if (running) return;
-    const idx = posts.map((p, i) => (state(p) === 'wait' || state(p) === 'err' ? i : -1)).filter((i) => i >= 0);
-    idx.forEach((i) => { posts[i].main = null; posts[i].blog = null; });
-    runQueue(idx);
+  $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') run(); });
+  $('retry').addEventListener('click', async () => {
+    if (working) return;
+    working = true;
+    setBusy(true);
+    try { await runPage(page, true); } finally { working = false; setBusy(false); }
+    render();
+    pump();
   });
   $('pager').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest('button');
-    if (b) { page = Number(b.dataset.p); render(); }
+    if (!b) return;
+    page = Number(b.dataset.p);
+    if (!pageState[page]) enqueue(page);
+    else render();
   });
   try {
     const saved = localStorage.getItem('naver_blog_id');
