@@ -211,13 +211,8 @@ a.st:hover{filter:brightness(.95);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
 .st-wait{background:#eef1f6;color:#7a869d}
 .st-busy{background:#e6eeff;color:#0046d1;animation:pulse 1s ease-in-out infinite}
 
-/* naver check: compact rows, page-done mark, toast */
-table.posts td{padding:7px 14px}
-table.posts th{padding:10px 14px}
-.st{padding:5px 12px;font-size:.8rem;min-width:96px}
-.date-cell b,.date-cell span{display:inline}
-.date-cell b{margin-right:8px}
-#result{margin-top:16px}
-.pager{padding:12px}
+/* naver check: one-line date, page-done mark, toast */
+.date-cell b,.date-cell span{display:inline;font-size:.85rem}
+.date-cell span{margin-right:8px}
 .pager button.done::after{content:" ✓";font-size:.75em}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:14px 22px;border-radius:12px;font-weight:600;font-size:.92rem;box-shadow:0 12px 32px rgba(20,40,90,.3);z-index:30;max-width:92vw;text-align:center}
