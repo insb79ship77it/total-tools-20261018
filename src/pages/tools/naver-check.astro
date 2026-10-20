@@ -54,7 +54,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
 <script>
   type Hit = 'text' | 'image' | 'none' | 'error' | null;
-  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; busy: boolean };
+  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; busy: boolean; note: string };
 
   const $ = (id: string) => document.getElementById(id)!;
   const PAGE = 10;
@@ -106,7 +106,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
       : h === 'image' ? ['st-ok', '이미지 노출']
       : h === 'none' ? ['st-no', '미노출']
       : ['st-err', '확인 실패'];
-    return `<a class="st ${cls}" href="${searchUrl(p.title, tab)}" target="_blank" rel="noopener">${label}</a>`;
+    const tip = h === 'error' && p.note ? ` title="${esc(p.note)}"` : '';
+    return `<a class="st ${cls}" href="${searchUrl(p.title, tab)}" target="_blank" rel="noopener"${tip}>${label}</a>`;
   }
 
   function render() {
@@ -144,23 +145,29 @@ import ToolPage from '../../layouts/ToolPage.astro';
   async function checkOne(p: Post) {
     let main: Hit = null;
     let blog: Hit = null;
+    let note = '';
     for (let a = 0; a < RETRIES; a++) {
       try {
         const qs = new URLSearchParams({ blogId, logNo: p.logNo, title: p.title });
-        const d = await (await fetch(`/api/naver-check?${qs}`)).json();
-        if (main === null || main === 'error') main = d.main || 'error';
-        if (blog === null || blog === 'error') blog = d.blog || 'error';
-      } catch {
+        const r = await fetch(`/api/naver-check?${qs}`);
+        if (!r.ok) throw new Error(`서버 오류 (HTTP ${r.status})`);
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        if (main === null || main === 'error') { main = d.main || 'error'; if (main === 'error') note = d.mainNote || note; }
+        if (blog === null || blog === 'error') { blog = d.blog || 'error'; if (blog === 'error') note = d.blogNote || note; }
+      } catch (e) {
+        note = (e as Error).message || '요청에 실패했어요';
         if (main === null) main = 'error';
         if (blog === null) blog = 'error';
       }
-      if (main !== 'error' && blog !== 'error') break;
+      if (main !== 'error' && blog !== 'error') { note = ''; break; }
       if (stopped || a === RETRIES - 1) break;
       setStatus(`네이버 응답이 없어 잠시 후 다시 시도합니다 (${a + 1}/${RETRIES - 1})`, 'wait');
       await sleep(2500 * (a + 1));
     }
     p.main = main;
     p.blog = blog;
+    p.note = note;
   }
 
   async function runQueue(indices: number[]) {
@@ -194,7 +201,12 @@ import ToolPage from '../../layouts/ToolPage.astro';
     ($('stop') as HTMLElement).hidden = true;
     const left = posts.filter((p) => state(p) === 'wait' || state(p) === 'err').length;
     ($('retry') as HTMLElement).hidden = left === 0;
-    setStatus(stopped ? `중지했어요. 확인하지 못한 글 ${left}개` : left ? `완료 · 확인하지 못한 글 ${left}개` : '모든 글 확인을 마쳤어요', 'idle');
+    const why = posts.find((p) => state(p) === 'err' && p.note)?.note;
+    setStatus(
+      stopped ? `중지했어요. 확인하지 못한 글 ${left}개`
+      : left ? `완료 · 확인하지 못한 글 ${left}개${why ? ` · 원인: ${why}` : ''}`
+      : '모든 글 확인을 마쳤어요',
+      'idle');
     render();
   }
 
@@ -213,7 +225,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
 
-      posts = d.posts.map((p: Omit<Post, 'main' | 'blog' | 'busy'>) => ({ ...p, main: null, blog: null, busy: false }));
+      posts = d.posts.map((p: Omit<Post, 'main' | 'blog' | 'busy' | 'note'>) => ({ ...p, main: null, blog: null, busy: false, note: '' }));
       page = 1;
       $('blogTitle').textContent = d.blogTitle;
       const a = $('blogUrl') as HTMLAnchorElement;
