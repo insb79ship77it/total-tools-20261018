@@ -220,6 +220,7 @@ a.st:hover{filter:brightness(.95);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
 /* add */
 .table.posts td{padding:6px 14px}
 .logo .tt{color:var(--blue)}
+@media(max-width:760px){.nav{padding:12px 22px}}
 
 /* ===== 상단 메뉴: 글자 크기, PC 오른쪽 정렬, 모바일 간격 ===== */
 .nav a.link,.menu summary{font-size:.875rem}
@@ -245,3 +246,10 @@ tr.sub td{background:#f8faff;padding:4px 24px 12px}
 .subrow:last-child{border-bottom:0}
 .subrow .t{flex:1;min-width:200px;font-weight:600;color:var(--navy)}
 .subrow .t:hover{color:var(--blue);text-decoration:underline}
+
+/* 홈 전체 도구: 심플한 목록 */
+.grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 40px}
+.tl{display:block;padding:14px 4px;border-bottom:1px solid var(--line)}
+.tl b{display:block;color:var(--navy)}
+.tl small{color:var(--muted);font-size:.875rem}
+.tl:hover b{color:var(--gc)}
