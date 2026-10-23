@@ -14,6 +14,7 @@ export const ICONS: Record<string, string> = {
   url: '<path d="M9 17H7a5 5 0 0 1 0-10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/>',
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
+  favicon: '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M9 16V8h5M9 12h4"/>',
 };
 
 export type Tool = {
