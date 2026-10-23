@@ -1,11 +1,11 @@
 ---
 import ToolPage from '../../layouts/ToolPage.astro';
 ---
-<ToolPage title="파비콘 만들기" description="배경색과 글자 1~2개로 파비콘을 만들어 SVG, ICO, PNG로 내려받는 파비콘 생성기." lead="글자와 색만 고르면 브라우저 탭에 쓰는 파비콘을 바로 만들어 줍니다.">
+<ToolPage title="파비콘 만들기" description="배경색과 글자로 파비콘을 만들어 SVG, ICO, PNG로 내려받는 파비콘 생성기." lead="글자와 색만 고르면 브라우저 탭에 쓰는 파비콘을 바로 만들어 줍니다.">
   <div class="card panel">
     <div class="two">
       <div class="controls">
-        <label class="lbl" for="f-text">글자 (1~2자)</label>
+        <label class="lbl" for="f-text">글자</label>
         <input id="f-text" class="field" type="text" value="T" autocomplete="off" />
 
         <div class="two2">
@@ -33,7 +33,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         </div>
 
         <label class="lbl" for="f-size">글자 크기 <span class="hint" id="f-size-v">60%</span></label>
-        <input id="f-size" type="range" min="30" max="90" value="60" />
+        <input id="f-size" type="range" min="10" max="90" value="60" />
       </div>
 
       <div>
@@ -96,7 +96,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let sizeTouched = false;
 
   const val = (id: string) => $<HTMLInputElement>(id).value;
-  const letters = () => [...val('f-text')].slice(0, 2).join('');
+  const letters = () => val('f-text');
   const pct = () => Number(val('f-size')) / 100;
 
   function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -122,10 +122,16 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const t = letters();
     if (!t) return;
     ctx.fillStyle = val('f-fg');
-    ctx.font = `800 ${size * pct()}px ${FONT}`;
+    let fs = size * pct();
+    ctx.font = `800 ${fs}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    const m = ctx.measureText(t);
+    let m = ctx.measureText(t);
+    if (m.width > size * 0.9) { // 글자가 길면 칸 안에 들어가게 줄입니다
+      fs *= (size * 0.9) / m.width;
+      ctx.font = `800 ${fs}px ${FONT}`;
+      m = ctx.measureText(t);
+    }
     ctx.fillText(t, size / 2, size / 2 + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
   }
 
@@ -136,8 +142,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
       shape === 'circle' ? `<circle cx="32" cy="32" r="32" fill="${bg}"/>`
       : `<rect width="64" height="64"${shape === 'round' ? ' rx="14"' : ''} fill="${bg}"/>`;
     const t = letters();
+    const em = [...t].reduce((n, ch) => n + (ch.codePointAt(0)! > 0x2e80 ? 1 : 0.62), 0);
+    const fs = Math.min(64 * pct(), 57.6 / Math.max(em, 1));
     const text = t
-      ? `<text x="32" y="32" dy=".35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${(64 * pct()).toFixed(1)}" fill="${val('f-fg')}">${escXml(t)}</text>`
+      ? `<text x="32" y="32" dy=".35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${fs.toFixed(1)}" fill="${val('f-fg')}">${escXml(t)}</text>`
       : '';
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${form}${text}</svg>`;
   }
@@ -150,13 +158,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
 
   // 글자, 색, 모양, 크기 입력
-  function onText(e?: Event) {
-    const input = $<HTMLInputElement>('f-text');
-    if (!(e as InputEvent | undefined)?.isComposing) {
-      const t = letters();
-      if (input.value !== t) input.value = t;
-    }
-    if (!sizeTouched) $<HTMLInputElement>('f-size').value = String([...input.value].length >= 2 ? 48 : 60);
+  function onText() {
+    const n = [...val('f-text')].length;
+    if (!sizeTouched) $<HTMLInputElement>('f-size').value = String(n <= 1 ? 60 : n === 2 ? 48 : Math.max(10, Math.round(110 / n)));
     render();
   }
   $('f-text').addEventListener('input', onText);
