@@ -220,7 +220,7 @@ a.st:hover{filter:brightness(.95);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
 /* add */
 .table.posts td{padding:6px 14px}
 .logo .tt{color:var(--blue)}
-@media(max-width:760px){.nav{padding:12px 22px}}
+
 
 /* ===== 상단 메뉴: 글자 크기, PC 오른쪽 정렬, 모바일 간격 ===== */
 .nav a.link,.menu summary{font-size:.875rem}
@@ -232,7 +232,7 @@ a.st:hover{filter:brightness(.95);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
 }
 @media(max-width:760px){
   .wrap{padding:0 22px}
-  .nav{display:flex;justify-content:space-between;gap:16px;padding:12px 0}
+  .nav{display:flex;justify-content:space-between;gap:16px;padding:12px 22px}
   .menu summary{padding:7px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
 }
 
