@@ -32,6 +32,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <div class="runbar">
       <span class="dot idle" id="dot"></span>
       <span class="grow" id="status">대기 중</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="stop" hidden>중지</button>
       <button type="button" class="btn btn-ghost btn-sm" id="retry" hidden>이 페이지 실패 항목 다시 확인</button>
     </div>
     <div class="prog"><div id="prog"></div></div>
@@ -125,6 +126,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let queue: number[] = [];
   let working = false;
   let mrunning = false;
+  let stopped = false;
   let curPage = 0, curDone = 0, curTotal = 0, startedAt = 0;
   let phase: 'check' | 'rest' | 'retry' = 'check';
   let toastTimer = 0;
@@ -203,6 +205,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         }).join('')
       : '';
 
+    ($('stop') as HTMLElement).hidden = !working;
     ($('retry') as HTMLElement).hidden = !(
       pageState[page] === 'done' && !working && slice.some((p) => state(p) === 'err' || state(p) === 'wait')
     );
@@ -224,10 +227,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
   // 진행 상황: "n페이지 확인 중 · 3/10번째 · 소요시간 12초 진행중"
   function tick() {
     if (!working || !curPage) return;
+    if (stopped) { setStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); return; }
     const sec = Math.floor((Date.now() - startedAt) / 1000);
     const n = Math.min(curDone + 1, curTotal);
-    const extra = phase === 'rest' ? ' · 요청이 몰리지 않게 잠시 쉬는 중' : phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
-    setStatus(`${curPage}페이지 확인 중 · ${n}/${curTotal}번째 · 소요시간 ${sec}초 진행중${extra}`, phase === 'check' ? 'run' : 'wait');
+    const extra = phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
+    setStatus(`${curPage}페이지 확인 중 · ${n}/${curTotal}번째 · 소요시간 ${sec}초 진행중${extra}`, phase === 'retry' ? 'wait' : 'run');
   }
   setInterval(tick, 500);
 
@@ -264,15 +268,17 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const from = (n - 1) * PAGE;
     const to = Math.min(n * PAGE, posts.length);
     const idx: number[] = [];
-    for (let i = from; i < to; i++) if (!onlyFailed || state(posts[i]) !== 'ok') idx.push(i);
+    for (let i = from; i < to; i++) if (!onlyFailed || state(posts[i]) === 'err' || state(posts[i]) === 'wait') idx.push(i);
     if (onlyFailed) idx.forEach((i) => { posts[i].main = null; posts[i].blog = null; posts[i].note = ''; });
 
+    stopped = false;
     pageState[n] = 'running';
     curPage = n; curDone = 0; curTotal = idx.length; startedAt = Date.now(); phase = 'check';
     render();
     tick();
 
     for (let k = 0; k < idx.length; k++) {
+      if (stopped) break;
       curDone = k;
       phase = 'check';
       posts[idx[k]].busy = true;
@@ -282,7 +288,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       posts[idx[k]].busy = false;
       curDone = k + 1;
       render();
-      if (k < idx.length - 1) {
+      if (k < idx.length - 1 && !stopped) {
         phase = 'rest';
         tick();
         await sleep(DELAY + Math.random() * JITTER);
@@ -293,7 +299,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const sec = Math.round((Date.now() - startedAt) / 1000);
     const sl = posts.slice(from, to);
     const count = (k: string) => sl.filter((p) => state(p) === k).length;
-    const msg = `${n}페이지 확인 완료 · 소요시간 ${sec}초 (노출 ${count('ok')} · 누락 ${count('no')} · 확인 실패 ${count('err')})`;
+    const msg = `${n}페이지 확인${stopped ? '을 중지했어요' : ' 완료'} · 소요시간 ${sec}초 (노출 ${count('ok')} · 누락 ${count('no')} · 확인 실패 ${count('err')})`;
     toast(msg);
     if (queue.length === 0) setStatus(msg, 'idle');
     render();
@@ -361,6 +367,12 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
   $('go').addEventListener('click', run);
   $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') run(); });
+  $('stop').addEventListener('click', () => {
+    stopped = true;
+    queue.forEach((n) => delete pageState[n]);
+    queue = [];
+    setStatus('현재 글까지만 확인하고 멈추는 중…', 'wait');
+  });
   $('retry').addEventListener('click', async () => {
     if (working || mrunning) return;
     working = true;
@@ -396,8 +408,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
   function mtick() {
     if (!mrunning) return;
     const sec = Math.floor((Date.now() - mStart) / 1000);
-    const extra = phase === 'rest' ? ' · 요청이 몰리지 않게 잠시 쉬는 중' : phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
-    msetStatus(`블로그 ${mBlogNo}/${mblogs.length} (${mCur}) · 글 ${mPostNo}/${mPostTotal} · 소요시간 ${sec}초 진행중${extra}`, phase === 'check' ? 'run' : 'wait');
+    const extra = phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
+    msetStatus(`블로그 ${mBlogNo}/${mblogs.length} (${mCur}) · 글 ${mPostNo}/${mPostTotal} · 소요시간 ${sec}초 진행중${extra}`, phase === 'retry' ? 'wait' : 'run');
   }
   setInterval(mtick, 500);
 
