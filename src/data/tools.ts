@@ -45,5 +45,6 @@ export const tools: Tool[] = [
   { slug: 'base64', name: 'Base64 변환', short: 'Base64', desc: 'Base64 인코딩과 디코딩', icon: 'lock', group: '개발·계산' },
   { slug: 'url-encode', name: 'URL 인코딩', short: 'URL 인코딩', desc: 'URL 인코딩과 디코딩', icon: 'url', group: '개발·계산' },
   { slug: 'px-rem', name: 'PX ↔ REM 변환', short: 'PX·REM', desc: 'CSS 단위 실시간 변환', icon: 'ruler', group: '개발·계산' },
+  { slug: 'favicon', name: '파비콘 만들기', short: '파비콘', desc: '글자와 색으로 파비콘 만들기', icon: 'favicon', group: '개발·계산' },
   { slug: 'dday', name: 'D-Day 계산기', short: 'D-Day', desc: '디데이와 날짜 간격 계산', icon: 'calendar', group: '개발·계산' },
 ];
