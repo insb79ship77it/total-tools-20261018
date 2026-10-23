@@ -220,3 +220,28 @@ a.st:hover{filter:brightness(.95);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
 /* add */
 .table.posts td{padding:6px 14px}
 .logo .tt{color:var(--blue)}
+
+/* ===== 상단 메뉴: 글자 크기, PC 오른쪽 정렬, 모바일 간격 ===== */
+.nav a.link,.menu summary{font-size:.875rem}
+.nav ul{gap:24px}
+@media(min-width:761px){
+  .nav{display:flex;justify-content:space-between}
+  .nav>span{display:none}
+  .menu-panel{left:auto;right:0;transform:none}
+}
+@media(max-width:760px){
+  .wrap{padding:0 22px}
+  .nav{display:flex;justify-content:space-between;gap:16px;padding:12px 0}
+  .menu summary{padding:7px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
+}
+
+/* ===== 멀티 체크 ===== */
+#tabs{margin-bottom:16px}
+.bname b{display:block;color:var(--navy)}
+.bname a:hover b{color:var(--blue)}
+.bname small{color:var(--muted);font-size:.78rem}
+tr.sub td{background:#f8faff;padding:4px 24px 12px}
+.subrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #e9eef7;flex-wrap:wrap}
+.subrow:last-child{border-bottom:0}
+.subrow .t{flex:1;min-width:200px;font-weight:600;color:var(--navy)}
+.subrow .t:hover{color:var(--blue);text-decoration:underline}
