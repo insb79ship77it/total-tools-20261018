@@ -2,6 +2,12 @@
 import ToolPage from '../../layouts/ToolPage.astro';
 ---
 <ToolPage title="네이버 블로그 누락 체크" description="네이버 블로그 최근 글이 통합검색과 블로그탭에 노출되는지, 텍스트인지 이미지인지 확인합니다." lead="최근 글의 제목을 네이버에서 검색해 통합검색과 블로그탭 노출 여부를 확인합니다.">
+  <div class="seg" id="tabs">
+    <button type="button" class="on" data-tab="single">단일 체크</button>
+    <button type="button" data-tab="multi">멀티 체크</button>
+  </div>
+
+  <div id="tab-single">
   <div class="card panel">
     <div class="row">
       <input id="blogId" class="field" type="text" placeholder="블로그 아이디 또는 주소 (예: myblogid)" aria-label="네이버 블로그 아이디" autocomplete="off" />
@@ -40,6 +46,51 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <div class="pager" id="pager"></div>
   </div>
 
+  </div>
+
+  <div id="tab-multi" hidden>
+    <div class="card panel">
+      <label class="lbl" for="m-ids">블로그 아이디 (한 줄에 하나, 최대 10개)</label>
+      <textarea id="m-ids" class="field" style="min-height:140px" placeholder="blogid1&#10;blogid2&#10;https://blog.naver.com/blogid3"></textarea>
+      <div class="row mt" style="align-items:center">
+        <label class="lbl" for="m-count" style="margin:0;white-space:nowrap">블로그당 확인할 최근 글</label>
+        <select id="m-count" class="field" style="flex:none;width:110px">
+          <option value="3">3개</option>
+          <option value="5" selected>5개</option>
+          <option value="10">10개</option>
+        </select>
+        <button id="m-go" class="btn btn-primary" type="button">멀티 체크 시작</button>
+      </div>
+      <p class="err" id="m-error" hidden></p>
+    </div>
+
+    <div class="card" id="m-result" hidden style="margin-top:24px;overflow:hidden">
+      <div class="res-head">
+        <h2>멀티 체크 결과</h2>
+        <div class="sum">
+          <span class="badge b-gray" id="m-s-blogs">블로그 0</span>
+          <span class="badge b-green" id="m-s-ok">노출 0</span>
+          <span class="badge b-red" id="m-s-no">누락 0</span>
+          <span class="badge b-amber" id="m-s-err">확인 실패 0</span>
+        </div>
+      </div>
+      <div class="runbar">
+        <span class="dot idle" id="m-dot"></span>
+        <span class="grow" id="m-status">대기 중</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="m-stop" hidden>중지</button>
+      </div>
+      <div class="prog"><div id="m-prog"></div></div>
+      <div class="tbl-wrap">
+        <table class="posts">
+          <thead>
+            <tr><th class="num">번호</th><th>블로그</th><th>진행</th><th class="c">노출</th><th class="c">누락</th><th class="c">확인 실패</th><th class="c">상세</th></tr>
+          </thead>
+          <tbody id="m-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" hidden></div>
 
   <Fragment slot="guide">
@@ -48,6 +99,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <p>초록은 검색 결과에서 글이 보인다는 뜻이고 텍스트 또는 이미지로 노출됐는지도 함께 적어요. 빨강은 검색 결과에 없는 누락, 주황은 네이버가 응답하지 않아 확인하지 못한 경우입니다. 상태 버튼을 누르면 해당 검색 결과가 새 창으로 열려요.</p>
     <h3>천천히 확인하는 이유</h3>
     <p>네이버에 요청이 한꺼번에 몰리면 응답을 막아서 확인 실패가 늘어납니다. 그래서 한 페이지(10개)씩, 글을 하나씩 간격을 두고 확인하고 실패한 글은 자동으로 다시 시도해요. 페이지가 끝나면 결과를 한꺼번에 보여주고, 다른 페이지 번호를 누르면 그때 그 페이지를 확인합니다.</p>
+    <h3>멀티 체크</h3>
+    <p>여러 블로그의 최근 글이 검색에 노출되는지 한 번에 확인합니다. 블로그 아이디를 한 줄에 하나씩 넣고 블로그당 확인할 글 수를 고르세요. 블로그마다 노출·누락 개수가 나오고, 상세 보기를 누르면 글별 결과를 볼 수 있어요. 글이 많을수록 시간이 걸리니 3~5개로 시작해 보세요.</p>
     <h3>참고하세요</h3>
     <p>발행 직후의 글은 검색에 반영되기까지 시간이 걸려 누락으로 보일 수 있습니다. 최근 50개 글까지 확인하며, 네이버 화면 구조가 바뀌면 결과가 달라질 수 있습니다.</p>
   </Fragment>
@@ -55,7 +108,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
 <script>
   type Hit = 'text' | 'image' | 'none' | 'error' | null;
-  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; note: string };
+  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; note: string; busy?: boolean };
   type PState = 'queued' | 'running' | 'done';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -71,6 +124,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let pageState: Record<number, PState> = {};
   let queue: number[] = [];
   let working = false;
+  let mrunning = false;
   let curPage = 0, curDone = 0, curTotal = 0, startedAt = 0;
   let phase: 'check' | 'rest' | 'retry' = 'check';
   let toastTimer = 0;
@@ -105,10 +159,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
     return [ago, abs];
   }
 
-  // 페이지 확인이 끝나기 전에는 결과를 보여주지 않습니다.
+  // 글 하나를 확인할 때마다 그 줄의 결과를 바로 보여줍니다.
   function cell(h: Hit, p: Post, tab: boolean) {
-    if (pageState[page] !== 'done' || h === null) {
-      return `<span class="st st-wait">${pageState[page] === 'running' ? '확인 중…' : '대기'}</span>`;
+    if (h === null) {
+      return p.busy ? '<span class="st st-busy">확인 중…</span>' : '<span class="st st-wait">대기</span>';
     }
     const [cls, label] =
       h === 'text' ? ['st-ok', '텍스트 노출']
@@ -120,7 +174,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
 
   function render() {
-    const shown = posts.filter((_, i) => pageState[Math.floor(i / PAGE) + 1] === 'done');
+    const shown = posts.filter((p) => state(p) !== 'wait');
     $('s-total').textContent = `전체 ${posts.length}`;
     $('s-ok').textContent = `노출 ${shown.filter((p) => state(p) === 'ok').length}`;
     $('s-no').textContent = `누락 ${shown.filter((p) => state(p) === 'no').length}`;
@@ -177,13 +231,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
   setInterval(tick, 500);
 
-  async function checkOne(p: Post) {
+  async function checkOne(p: Post, bid = blogId) {
     let main: Hit = null;
     let blog: Hit = null;
     let note = '';
     for (let a = 0; a < RETRIES; a++) {
       try {
-        const qs = new URLSearchParams({ blogId, logNo: p.logNo, title: p.title });
+        const qs = new URLSearchParams({ blogId: bid, logNo: p.logNo, title: p.title });
         const r = await fetch(`/api/naver-check?${qs}`);
         if (!r.ok) throw new Error(`서버 오류 (HTTP ${r.status})`);
         const d = await r.json();
@@ -221,9 +275,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
     for (let k = 0; k < idx.length; k++) {
       curDone = k;
       phase = 'check';
+      posts[idx[k]].busy = true;
+      render();
       tick();
       await checkOne(posts[idx[k]]);
+      posts[idx[k]].busy = false;
       curDone = k + 1;
+      render();
       if (k < idx.length - 1) {
         phase = 'rest';
         tick();
@@ -246,7 +304,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
 
   async function pump() {
-    if (working) return;
+    if (working || mrunning) return;
     working = true;
     setBusy(true);
     try {
@@ -267,7 +325,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
 
   async function run() {
-    if (working) return;
+    if (working || mrunning) return;
     const err = $('error');
     err.hidden = true;
     blogId = parseId(($('blogId') as HTMLInputElement).value);
@@ -304,7 +362,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   $('go').addEventListener('click', run);
   $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') run(); });
   $('retry').addEventListener('click', async () => {
-    if (working) return;
+    if (working || mrunning) return;
     working = true;
     setBusy(true);
     try { await runPage(page, true); } finally { working = false; setBusy(false); }
@@ -321,5 +379,176 @@ import ToolPage from '../../layouts/ToolPage.astro';
   try {
     const saved = localStorage.getItem('naver_blog_id');
     if (saved) ($('blogId') as HTMLInputElement).value = saved;
+  } catch {}
+
+  // ---------- 멀티 체크 ----------
+  type MBlog = { id: string; title: string; posts: Post[]; status: 'wait' | 'load' | 'run' | 'done' | 'stop' | 'error'; error: string };
+  let mblogs: MBlog[] = [];
+  let mstop = false;
+  let mStart = 0, mCur = '', mBlogNo = 0, mPostNo = 0, mPostTotal = 0;
+  const mOpen = new Set<string>();
+
+  function msetStatus(text: string, mode: 'run' | 'wait' | 'idle') {
+    $('m-status').textContent = text;
+    $('m-dot').className = 'dot' + (mode === 'idle' ? ' idle' : mode === 'wait' ? ' slow' : '');
+  }
+
+  function mtick() {
+    if (!mrunning) return;
+    const sec = Math.floor((Date.now() - mStart) / 1000);
+    const extra = phase === 'rest' ? ' · 요청이 몰리지 않게 잠시 쉬는 중' : phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
+    msetStatus(`블로그 ${mBlogNo}/${mblogs.length} (${mCur}) · 글 ${mPostNo}/${mPostTotal} · 소요시간 ${sec}초 진행중${extra}`, phase === 'check' ? 'run' : 'wait');
+  }
+  setInterval(mtick, 500);
+
+  function mrender() {
+    const all = mblogs.flatMap((b) => b.posts);
+    $('m-s-blogs').textContent = `블로그 ${mblogs.length}`;
+    $('m-s-ok').textContent = `노출 ${all.filter((p) => state(p) === 'ok').length}`;
+    $('m-s-no').textContent = `누락 ${all.filter((p) => state(p) === 'no').length}`;
+    $('m-s-err').textContent = `확인 실패 ${all.filter((p) => state(p) === 'err').length}`;
+
+    $('m-rows').innerHTML = mblogs.map((b, i) => {
+      const ok = b.posts.filter((p) => state(p) === 'ok').length;
+      const no = b.posts.filter((p) => state(p) === 'no').length;
+      const err = b.posts.filter((p) => state(p) === 'err').length;
+      const checked = b.posts.filter((p) => state(p) !== 'wait').length;
+      const prog =
+        b.status === 'error' ? `<span class="st st-err" title="${esc(b.error)}">조회 실패</span>`
+        : b.status === 'wait' ? '<span class="st st-wait">대기</span>'
+        : b.status === 'load' ? '<span class="st st-busy">글 목록 확인 중…</span>'
+        : b.status === 'run' ? `<span class="st st-busy">${checked}/${b.posts.length} 확인 중…</span>`
+        : b.status === 'stop' ? '<span class="st st-wait">중지됨</span>'
+        : b.posts.length ? `<span class="st st-ok">${b.posts.length}/${b.posts.length} 완료</span>` : '<span class="st st-wait">글 없음</span>';
+      const has = b.posts.length > 0;
+      const open = mOpen.has(b.id);
+      const main = `<tr>
+        <td class="num">${i + 1}</td>
+        <td><div class="bname"><a href="https://blog.naver.com/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.title || b.id)}</b></a><small>${esc(b.id)}</small></div></td>
+        <td>${prog}</td>
+        <td class="c">${has ? ok : '-'}</td><td class="c">${has ? no : '-'}</td><td class="c">${has ? err : '-'}</td>
+        <td class="c">${has ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기' : '상세 보기'}</button>` : ''}</td></tr>`;
+      const sub = has && open
+        ? `<tr class="sub"><td colspan="7">${b.posts.map((p) => {
+            const [ago, abs] = when(p.pubDate);
+            return `<div class="subrow"><a class="t" href="https://blog.naver.com/${esc(b.id)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a><span class="date-cell"><span>${esc(abs)}</span><b>${esc(ago)}</b></span>${cell(p.main, p, false)}${cell(p.blog, p, true)}</div>`;
+          }).join('')}</td></tr>`
+        : '';
+      return main + sub;
+    }).join('');
+  }
+
+  async function runMulti() {
+    if (working || mrunning) return;
+    const err = $('m-error');
+    err.hidden = true;
+    const raw = ($('m-ids') as HTMLTextAreaElement).value;
+    const ids = [...new Set(raw.split(/\r?\n/).map(parseId).filter(Boolean))];
+    if (!ids.length) { err.textContent = '블로그 아이디를 한 줄에 하나씩 입력하세요.'; err.hidden = false; return; }
+    if (ids.length > 10) { err.textContent = '한 번에 최대 10개 블로그까지 확인할 수 있어요.'; err.hidden = false; return; }
+    try { localStorage.setItem('naver_multi_ids', raw); } catch {}
+
+    const per = Number(($('m-count') as HTMLSelectElement).value);
+    mrunning = true;
+    mstop = false;
+    mStart = Date.now();
+    phase = 'check';
+    mblogs = ids.map((id) => ({ id, title: '', posts: [], status: 'wait' as const, error: '' }));
+    mOpen.clear();
+    ($('m-go') as HTMLButtonElement).disabled = true;
+    ($('m-stop') as HTMLElement).hidden = false;
+    $('m-result').hidden = false;
+    $('m-prog').style.width = '0';
+    mrender();
+
+    let mdone = 0;
+    const mtotal = ids.length * per;
+    const bar = () => ($('m-prog').style.width = Math.min(100, (mdone / mtotal) * 100) + '%');
+    try {
+      for (let bi = 0; bi < mblogs.length && !mstop; bi++) {
+        const b = mblogs[bi];
+        mBlogNo = bi + 1; mCur = b.id; mPostNo = 0; mPostTotal = per;
+        b.status = 'load';
+        phase = 'check';
+        mrender();
+        mtick();
+        try {
+          const res = await fetch(`/api/naver-posts?blogId=${encodeURIComponent(b.id)}`);
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
+          b.title = d.blogTitle || b.id;
+          b.posts = d.posts.slice(0, per).map((p: Omit<Post, 'main' | 'blog' | 'note'>) => ({ ...p, main: null, blog: null, note: '' }));
+        } catch (e) {
+          b.error = (e as Error).message || '조회에 실패했습니다.';
+          b.status = 'error';
+          mdone += per;
+          bar();
+          mrender();
+          continue;
+        }
+        b.status = 'run';
+        mPostTotal = b.posts.length;
+        mrender();
+        for (let k = 0; k < b.posts.length && !mstop; k++) {
+          const p = b.posts[k];
+          mPostNo = k + 1;
+          phase = 'check';
+          p.busy = true;
+          mrender();
+          mtick();
+          await checkOne(p, b.id);
+          p.busy = false;
+          mdone++;
+          bar();
+          mrender();
+          if (k < b.posts.length - 1 && !mstop) {
+            phase = 'rest';
+            mtick();
+            await sleep(DELAY + Math.random() * JITTER);
+          }
+        }
+        if (!mstop) { b.status = 'done'; mdone += per - b.posts.length; bar(); }
+        mrender();
+        if (bi < mblogs.length - 1 && !mstop) {
+          phase = 'rest';
+          mtick();
+          await sleep(DELAY + Math.random() * JITTER);
+        }
+      }
+    } finally {
+      mblogs.forEach((b) => { if (b.status === 'run' || b.status === 'load') b.status = 'stop'; });
+      const all = mblogs.flatMap((b) => b.posts);
+      const count = (k: string) => all.filter((p) => state(p) === k).length;
+      const sec = Math.round((Date.now() - mStart) / 1000);
+      const msg = `${mstop ? '멀티 체크를 중지했어요' : '멀티 체크 완료'} · 소요시간 ${sec}초 (노출 ${count('ok')} · 누락 ${count('no')} · 확인 실패 ${count('err')})`;
+      msetStatus(msg, 'idle');
+      toast(msg);
+      mrunning = false;
+      ($('m-go') as HTMLButtonElement).disabled = false;
+      ($('m-stop') as HTMLElement).hidden = true;
+      mrender();
+      pump();
+    }
+  }
+
+  $('m-go').addEventListener('click', runMulti);
+  $('m-stop').addEventListener('click', () => { mstop = true; msetStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); });
+  $('m-rows').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-open]');
+    if (!b) return;
+    const id = b.dataset.open!;
+    if (mOpen.has(id)) mOpen.delete(id); else mOpen.add(id);
+    mrender();
+  });
+  $('tabs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (!b) return;
+    $('tabs').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    $('tab-single').hidden = b.dataset.tab !== 'single';
+    $('tab-multi').hidden = b.dataset.tab !== 'multi';
+  });
+  try {
+    const saved = localStorage.getItem('naver_multi_ids');
+    if (saved) ($('m-ids') as HTMLTextAreaElement).value = saved;
   } catch {}
 </script>
