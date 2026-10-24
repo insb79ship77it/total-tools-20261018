@@ -439,7 +439,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         <td><div class="bname"><a href="https://blog.naver.com/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.title || b.id)}</b></a><small>${esc(b.id)}</small></div></td>
         <td>${prog}</td>
         <td class="c">${has ? ok : '-'}</td><td class="c">${has ? no : '-'}</td><td class="c">${has ? err : '-'}</td>
-        <td class="c">${has ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기' : '상세 보기'}</button>` : ''}</td></tr>`;
+        <td class="c">${has ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기 ↑' : '상세 보기 ↓'}</button>` : ''}</td></tr>`;
       const sub = has && open
         ? `<tr class="sub"><td colspan="7">${b.posts.map((p) => {
             const [ago, abs] = when(p.pubDate);
