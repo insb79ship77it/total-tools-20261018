@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="로그인" description="로그인">
+  <div class="wrap">
+    <div class="card panel login-card">
+      <h1>로그인</h1>
+      <p class="sub">로그인 후 사용할 수 있는 기능입니다. 아이디와 암호를 입력하세요.</p>
+      <form method="post" action="/api/login">
+        <input type="hidden" name="next" id="next" value="/tools/naver-check/" />
+        <label class="lbl" for="id">아이디</label>
+        <input class="field" id="id" name="id" type="text" autocomplete="username" required />
+        <label class="lbl pw" for="pw">암호</label>
+        <input class="field" id="pw" name="pw" type="password" autocomplete="current-password" required />
+        <p class="err" id="err" hidden>아이디 또는 암호가 맞지 않습니다.</p>
+        <button class="btn btn-primary submit" type="submit">로그인</button>
+      </form>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .login-card { max-width: 440px; margin: 72px auto 96px; }
+  .login-card h1 { margin: 0 0 6px; font-size: 1.8rem; color: var(--navy); letter-spacing: -0.02em; }
+  .sub { margin: 0 0 24px; color: var(--muted); }
+  .pw { margin-top: 16px; }
+  .submit { width: 100%; margin-top: 22px; }
+</style>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('error')) document.getElementById('err')!.hidden = false;
+  const next = q.get('next');
+  if (next && next.startsWith('/') && !next.startsWith('//')) (document.getElementById('next') as HTMLInputElement).value = next;
+</script>

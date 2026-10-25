@@ -5,6 +5,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   <div class="seg" id="tabs">
     <button type="button" class="on" data-tab="single">단일 체크</button>
     <button type="button" data-tab="multi">멀티 체크</button>
+    <a class="btn btn-ghost btn-sm" href="/api/logout" style="margin-left:auto">로그아웃</a>
   </div>
 
   <div id="tab-single">
@@ -118,6 +119,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const JITTER = 700;   // 여기에 0~700ms를 더 랜덤으로 붙입니다
   const RETRIES = 3;
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const loginUrl = () => '/login/?next=' + encodeURIComponent(location.pathname);
 
   let posts: Post[] = [];
   let page = 1;
@@ -243,6 +245,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       try {
         const qs = new URLSearchParams({ blogId: bid, logNo: p.logNo, title: p.title });
         const r = await fetch(`/api/naver-check?${qs}`);
+        if (r.status === 401) { location.href = loginUrl(); throw new Error('로그인이 필요합니다.'); }
         if (!r.ok) throw new Error(`서버 오류 (HTTP ${r.status})`);
         const d = await r.json();
         if (d.error) throw new Error(d.error);
@@ -343,6 +346,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     btn.textContent = '조회 중…';
     try {
       const res = await fetch(`/api/naver-posts?blogId=${encodeURIComponent(blogId)}`);
+      if (res.status === 401) { location.href = loginUrl(); throw new Error('로그인이 필요합니다.'); }
       const d = await res.json();
       if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
 
@@ -439,7 +443,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         <td><div class="bname"><a href="https://blog.naver.com/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.title || b.id)}</b></a><small>${esc(b.id)}</small></div></td>
         <td>${prog}</td>
         <td class="c">${has ? ok : '-'}</td><td class="c">${has ? no : '-'}</td><td class="c">${has ? err : '-'}</td>
-        <td class="c">${has ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기 ↑' : '상세 보기 ↓'}</button>` : ''}</td></tr>`;
+        <td class="c">${has ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기' : '상세 보기'}</button>` : ''}</td></tr>`;
       const sub = has && open
         ? `<tr class="sub"><td colspan="7">${b.posts.map((p) => {
             const [ago, abs] = when(p.pubDate);
@@ -486,6 +490,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         mtick();
         try {
           const res = await fetch(`/api/naver-posts?blogId=${encodeURIComponent(b.id)}`);
+          if (res.status === 401) { location.href = loginUrl(); throw new Error('로그인이 필요합니다.'); }
           const d = await res.json();
           if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
           b.title = d.blogTitle || b.id;
