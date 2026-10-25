@@ -18,6 +18,10 @@ import Base from '../../layouts/Base.astro';
       <span class="hint" id="q-count"></span>
       <input id="q" class="field" type="search" placeholder="제목으로 검색" aria-label="결과에서 제목 검색" autocomplete="off" />
     </div>
+    <div class="tab-search" id="mq-wrap" hidden>
+      <span class="hint" id="mq-count"></span>
+      <input id="mq" class="field" type="search" placeholder="제목·블로그로 검색" aria-label="멀티 체크 결과에서 검색" autocomplete="off" />
+    </div>
   </div>
 
   <div id="tab-single">
@@ -441,6 +445,7 @@ import Base from '../../layouts/Base.astro';
   let mstop = false;
   let mStart = 0, mCur = '', mBlogNo = 0, mPostNo = 0, mPostTotal = 0;
   const mOpen = new Set<string>();
+  let mquery = '';
 
   function msetStatus(text: string, mode: 'run' | 'wait' | 'idle') {
     $('m-status').textContent = text;
@@ -462,10 +467,19 @@ import Base from '../../layouts/Base.astro';
     $('m-s-no').textContent = `누락 ${all.filter((p) => state(p) === 'no').length}`;
     $('m-s-err').textContent = `확인 실패 ${all.filter((p) => state(p) === 'err').length}`;
 
-    $('m-rows').innerHTML = mblogs.map((b, i) => {
-      const ok = b.posts.filter((p) => state(p) === 'ok').length;
-      const no = b.posts.filter((p) => state(p) === 'no').length;
-      const err = b.posts.filter((p) => state(p) === 'err').length;
+    // 검색어가 있으면 현재 결과에서 글 제목(또는 블로그 이름·아이디)이 맞는 것만 보여주고, 상세는 자동으로 펼칩니다.
+    const q = norm(mquery);
+    let hitPosts = 0;
+    let hitBlogs = 0;
+    const rows = mblogs.map((b, i) => {
+      const nameHit = !!q && norm(`${b.title} ${b.id}`).includes(q);
+      const vp = !q || nameHit ? b.posts : b.posts.filter((p) => norm(p.title).includes(q));
+      if (q && !nameHit && !vp.length) return '';
+      hitBlogs++;
+      hitPosts += vp.length;
+      const ok = vp.filter((p) => state(p) === 'ok').length;
+      const no = vp.filter((p) => state(p) === 'no').length;
+      const err = vp.filter((p) => state(p) === 'err').length;
       const checked = b.posts.filter((p) => state(p) !== 'wait').length;
       const prog =
         b.status === 'error' ? `<span class="st st-err" title="${esc(b.error)}">조회 실패</span>`
@@ -474,22 +488,24 @@ import Base from '../../layouts/Base.astro';
         : b.status === 'run' ? `<span class="st st-busy">${checked}/${b.posts.length} 확인 중…</span>`
         : b.status === 'stop' ? '<span class="st st-wait">중지됨</span>'
         : b.posts.length ? `<span class="st st-ok">${b.posts.length}/${b.posts.length} 완료</span>` : '<span class="st st-wait">글 없음</span>';
-      const has = b.posts.length > 0;
-      const open = mOpen.has(b.id);
+      const has = vp.length > 0;
+      const open = !!q || mOpen.has(b.id);
       const main = `<tr>
         <td class="num">${i + 1}</td>
         <td><div class="bname"><a href="https://blog.naver.com/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.title || b.id)}</b></a><small>${esc(b.id)}</small></div></td>
         <td>${prog}</td>
         <td class="c">${has ? ok : '-'}</td><td class="c">${has ? no : '-'}</td><td class="c">${has ? err : '-'}</td>
-        <td class="c">${has ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기' : '상세 보기'}</button>` : ''}</td></tr>`;
+        <td class="c">${has && !q ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기' : '상세 보기'}</button>` : ''}</td></tr>`;
       const sub = has && open
-        ? `<tr class="sub"><td colspan="7">${b.posts.map((p) => {
+        ? `<tr class="sub"><td colspan="7">${vp.map((p) => {
             const [ago, abs] = when(p.pubDate);
             return `<div class="subrow"><a class="t" href="https://blog.naver.com/${esc(b.id)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a><span class="date-cell"><span>${esc(abs)}</span><b>${esc(ago)}</b></span>${cell(p.main, p, false)}${cell(p.blog, p, true)}</div>`;
           }).join('')}</td></tr>`
         : '';
       return main + sub;
-    }).join('');
+    });
+    $('m-rows').innerHTML = rows.join('') || (q ? '<tr><td colspan="7" style="text-align:center;color:#6f7d97">검색 결과가 없습니다.</td></tr>' : '');
+    $('mq-count').textContent = q ? `검색 결과 ${hitPosts}개 글 · ${hitBlogs}개 블로그` : '';
   }
 
   async function runMulti() {
@@ -509,6 +525,8 @@ import Base from '../../layouts/Base.astro';
     phase = 'check';
     mblogs = ids.map((id) => ({ id, title: '', posts: [], status: 'wait' as const, error: '' }));
     mOpen.clear();
+    mquery = '';
+    ($('mq') as HTMLInputElement).value = '';
     ($('m-go') as HTMLButtonElement).disabled = true;
     ($('m-stop') as HTMLElement).hidden = false;
     $('m-result').hidden = false;
@@ -586,6 +604,10 @@ import Base from '../../layouts/Base.astro';
     }
   }
 
+  $('mq').addEventListener('input', () => {
+    mquery = ($('mq') as HTMLInputElement).value.trim();
+    mrender();
+  });
   $('m-go').addEventListener('click', runMulti);
   $('m-stop').addEventListener('click', () => { mstop = true; msetStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); });
   $('m-rows').addEventListener('click', (e) => {
@@ -601,6 +623,7 @@ import Base from '../../layouts/Base.astro';
     $('tabs').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
     $('tab-single').hidden = b.dataset.tab !== 'single';
     $('q-wrap').hidden = b.dataset.tab !== 'single';
+    $('mq-wrap').hidden = b.dataset.tab !== 'multi';
     $('tab-multi').hidden = b.dataset.tab !== 'multi';
   });
   try {
