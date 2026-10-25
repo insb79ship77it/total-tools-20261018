@@ -19,3 +19,4 @@ npm run cf:dev     # 빌드 후 Functions 포함 실행
 - Framework preset: Astro
 - Build command: `npm run build`
 - Build output directory: `dist`
+- 
