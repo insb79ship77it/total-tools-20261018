@@ -86,10 +86,10 @@ import Base from '../../layouts/Base.astro';
       <div class="res-head">
         <h2>멀티 체크 결과</h2>
         <div class="sum">
-          <span class="badge b-gray" id="m-s-blogs">블로그 0</span>
-          <span class="badge b-green" id="m-s-ok">노출 0</span>
-          <span class="badge b-red" id="m-s-no">누락 0</span>
-          <span class="badge b-amber" id="m-s-err">확인 실패 0</span>
+          <button type="button" class="badge b-gray clickable" id="m-s-blogs" data-mf="all" title="전체 보기">블로그 0</button>
+          <button type="button" class="badge b-green clickable" id="m-s-ok" data-mf="ok" title="노출된 글만 보기">노출 0</button>
+          <button type="button" class="badge b-red clickable" id="m-s-no" data-mf="no" title="누락된 글만 보기">누락 0</button>
+          <button type="button" class="badge b-amber clickable" id="m-s-err" data-mf="err" title="확인 실패한 글만 보기">확인 실패 0</button>
         </div>
       </div>
       <div class="runbar">
@@ -124,6 +124,21 @@ import Base from '../../layouts/Base.astro';
   </section>
   </div>
 </Base>
+
+<style is:global>
+  .badge.clickable { border: 0; font-family: inherit; cursor: pointer; transition: box-shadow 0.15s; }
+  .badge.clickable:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08); }
+  .badge.clickable.active { box-shadow: 0 0 0 2px currentColor; }
+  .btn-open, .btn-fold { font: inherit; font-size: 0.82rem; font-weight: 700; padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+  .btn-open { background: var(--soft); color: var(--blue); border: 1px solid #cfe0ff; }
+  .btn-open:hover { background: #dbe7ff; }
+  .btn-fold { background: #f1f3f7; color: #6a768d; border: 1px solid #dfe4ee; }
+  .btn-fold:hover { background: #e7eaf0; }
+  table.posts tr.grp.open td { background: #f4f8ff; border-bottom: 0; }
+  table.posts tr.grp.open td:first-child { box-shadow: inset 4px 0 0 var(--blue); }
+  table.posts tr.sub td { background: #f8faff; border-top: 0; padding: 0 24px 16px 0; box-shadow: inset 4px 0 0 var(--blue); }
+  .sublist { margin: 0 0 0 64px; padding-left: 18px; border-left: 2px solid #cfe0ff; }
+</style>
 
 <style>
   .head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -446,6 +461,7 @@ import Base from '../../layouts/Base.astro';
   let mStart = 0, mCur = '', mBlogNo = 0, mPostNo = 0, mPostTotal = 0;
   const mOpen = new Set<string>();
   let mquery = '';
+  let mfilter: '' | 'ok' | 'no' | 'err' = '';
 
   function msetStatus(text: string, mode: 'run' | 'wait' | 'idle') {
     $('m-status').textContent = text;
@@ -466,6 +482,7 @@ import Base from '../../layouts/Base.astro';
     $('m-s-ok').textContent = `노출 ${all.filter((p) => state(p) === 'ok').length}`;
     $('m-s-no').textContent = `누락 ${all.filter((p) => state(p) === 'no').length}`;
     $('m-s-err').textContent = `확인 실패 ${all.filter((p) => state(p) === 'err').length}`;
+    (['ok', 'no', 'err'] as const).forEach((k) => $('m-s-' + k).classList.toggle('active', mfilter === k));
 
     // 검색어가 있으면 현재 결과에서 글 제목(또는 블로그 이름·아이디)이 맞는 것만 보여주고, 상세는 자동으로 펼칩니다.
     const q = norm(mquery);
@@ -473,13 +490,14 @@ import Base from '../../layouts/Base.astro';
     let hitBlogs = 0;
     const rows = mblogs.map((b, i) => {
       const nameHit = !!q && norm(`${b.title} ${b.id}`).includes(q);
-      const vp = !q || nameHit ? b.posts : b.posts.filter((p) => norm(p.title).includes(q));
-      if (q && !nameHit && !vp.length) return '';
+      const vp0 = !q || nameHit ? b.posts : b.posts.filter((p) => norm(p.title).includes(q));
+      const vp = mfilter ? vp0.filter((p) => state(p) === mfilter) : vp0; // 위쪽 배지를 누르면 그 상태의 글만 보여줍니다
+      if ((q && !nameHit && !vp0.length) || (mfilter && !vp.length)) return '';
       hitBlogs++;
       hitPosts += vp.length;
-      const ok = vp.filter((p) => state(p) === 'ok').length;
-      const no = vp.filter((p) => state(p) === 'no').length;
-      const err = vp.filter((p) => state(p) === 'err').length;
+      const ok = vp0.filter((p) => state(p) === 'ok').length;
+      const no = vp0.filter((p) => state(p) === 'no').length;
+      const err = vp0.filter((p) => state(p) === 'err').length;
       const checked = b.posts.filter((p) => state(p) !== 'wait').length;
       const prog =
         b.status === 'error' ? `<span class="st st-err" title="${esc(b.error)}">조회 실패</span>`
@@ -488,24 +506,25 @@ import Base from '../../layouts/Base.astro';
         : b.status === 'run' ? `<span class="st st-busy">${checked}/${b.posts.length} 확인 중…</span>`
         : b.status === 'stop' ? '<span class="st st-wait">중지됨</span>'
         : b.posts.length ? `<span class="st st-ok">${b.posts.length}/${b.posts.length} 완료</span>` : '<span class="st st-wait">글 없음</span>';
-      const has = vp.length > 0;
-      const open = !!q || mOpen.has(b.id);
-      const main = `<tr>
+      const has = vp0.length > 0;
+      const open = !!q || !!mfilter || mOpen.has(b.id);
+      const main = `<tr class="grp${open && vp.length ? ' open' : ''}">
         <td class="num">${i + 1}</td>
         <td><div class="bname"><a href="https://blog.naver.com/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.title || b.id)}</b></a><small>${esc(b.id)}</small></div></td>
         <td>${prog}</td>
         <td class="c">${has ? ok : '-'}</td><td class="c">${has ? no : '-'}</td><td class="c">${has ? err : '-'}</td>
-        <td class="c">${has && !q ? `<button type="button" class="btn btn-ghost btn-sm" data-open="${esc(b.id)}">${open ? '접기' : '상세 보기'}</button>` : ''}</td></tr>`;
-      const sub = has && open
-        ? `<tr class="sub"><td colspan="7">${vp.map((p) => {
+        <td class="c">${has && !q && !mfilter ? `<button type="button" class="${open ? 'btn-fold' : 'btn-open'}" data-open="${esc(b.id)}">${open ? '▴ 접기' : '▾ 상세 보기'}</button>` : ''}</td></tr>`;
+      const sub = vp.length > 0 && open
+        ? `<tr class="sub"><td colspan="7"><div class="sublist">${vp.map((p) => {
             const [ago, abs] = when(p.pubDate);
             return `<div class="subrow"><a class="t" href="https://blog.naver.com/${esc(b.id)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a><span class="date-cell"><span>${esc(abs)}</span><b>${esc(ago)}</b></span>${cell(p.main, p, false)}${cell(p.blog, p, true)}</div>`;
-          }).join('')}</td></tr>`
+          }).join('')}</div></td></tr>`
         : '';
       return main + sub;
     });
-    $('m-rows').innerHTML = rows.join('') || (q ? '<tr><td colspan="7" style="text-align:center;color:#6f7d97">검색 결과가 없습니다.</td></tr>' : '');
-    $('mq-count').textContent = q ? `검색 결과 ${hitPosts}개 글 · ${hitBlogs}개 블로그` : '';
+    $('m-rows').innerHTML = rows.join('') || (q || mfilter ? '<tr><td colspan="7" style="text-align:center;color:#6f7d97">조건에 맞는 글이 없습니다.</td></tr>' : '');
+    const tag = ({ ok: '노출', no: '누락', err: '확인 실패' } as Record<string, string>)[mfilter] || '';
+    $('mq-count').textContent = q || mfilter ? `${tag ? tag + ' ' : ''}${q ? '검색 ' : ''}결과 ${hitPosts}개 글 · ${hitBlogs}개 블로그` : '';
   }
 
   async function runMulti() {
@@ -526,6 +545,7 @@ import Base from '../../layouts/Base.astro';
     mblogs = ids.map((id) => ({ id, title: '', posts: [], status: 'wait' as const, error: '' }));
     mOpen.clear();
     mquery = '';
+    mfilter = '';
     ($('mq') as HTMLInputElement).value = '';
     ($('m-go') as HTMLButtonElement).disabled = true;
     ($('m-stop') as HTMLElement).hidden = false;
@@ -606,6 +626,13 @@ import Base from '../../layouts/Base.astro';
 
   $('mq').addEventListener('input', () => {
     mquery = ($('mq') as HTMLInputElement).value.trim();
+    mrender();
+  });
+  document.querySelector('#m-result .sum')!.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-mf]');
+    if (!b) return;
+    const v = b.dataset.mf!;
+    mfilter = v === 'all' || mfilter === v ? '' : (v as 'ok' | 'no' | 'err');
     mrender();
   });
   $('m-go').addEventListener('click', runMulti);
