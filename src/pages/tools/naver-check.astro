@@ -40,10 +40,10 @@ import Base from '../../layouts/Base.astro';
         <a id="blogUrl" href="#" target="_blank" rel="noopener">-</a>
       </div>
       <div class="sum">
-        <span class="badge b-gray" id="s-total">전체 0</span>
-        <span class="badge b-green" id="s-ok">노출 0</span>
-        <span class="badge b-red" id="s-no">누락 0</span>
-        <span class="badge b-amber" id="s-err">확인 실패 0</span>
+        <button type="button" class="badge b-gray clickable" id="s-total" data-sf="all" title="전체 보기">전체 0</button>
+        <button type="button" class="badge b-green clickable" id="s-ok" data-sf="ok" title="노출된 글만 보기">노출 0</button>
+        <button type="button" class="badge b-red clickable" id="s-no" data-sf="no" title="누락된 글만 보기">누락 0</button>
+        <button type="button" class="badge b-amber clickable" id="s-err" data-sf="err" title="확인 실패한 글만 보기">확인 실패 0</button>
       </div>
     </div>
     <div class="runbar">
@@ -166,6 +166,7 @@ import Base from '../../layouts/Base.astro';
   let page = 1;
   let blogId = '';
   let query = '';
+  let sfilter: '' | 'ok' | 'no' | 'err' = '';
   let pageState: Record<number, PState> = {};
   let queue: number[] = [];
   let working = false;
@@ -226,16 +227,20 @@ import Base from '../../layouts/Base.astro';
     $('s-ok').textContent = `노출 ${shown.filter((p) => state(p) === 'ok').length}`;
     $('s-no').textContent = `누락 ${shown.filter((p) => state(p) === 'no').length}`;
     $('s-err').textContent = `확인 실패 ${shown.filter((p) => state(p) === 'err').length}`;
+    (['ok', 'no', 'err'] as const).forEach((k) => $('s-' + k).classList.toggle('active', sfilter === k));
 
     // 검색어가 있으면 현재 결과에서 제목이 맞는 글만 보여줍니다. (번호는 원래 번호 그대로)
     const q = norm(query);
-    const list = posts.map((p, i) => ({ p, no: i + 1 })).filter((x) => !q || norm(x.p.title).includes(q));
+    const list = posts
+      .map((p, i) => ({ p, no: i + 1 }))
+      .filter((x) => (!q || norm(x.p.title).includes(q)) && (!sfilter || state(x.p) === sfilter));
     const pages = Math.max(1, Math.ceil(list.length / PAGE));
     if (page > pages) page = pages;
     const start = (page - 1) * PAGE;
     const slice = list.slice(start, start + PAGE);
     const waiting = list.filter((x) => state(x.p) === 'wait').length;
-    $('q-count').textContent = q ? `검색 결과 ${list.length}개${waiting ? ` (확인 전 ${waiting}개)` : ''}` : '';
+    const tag = ({ ok: '노출', no: '누락', err: '확인 실패' } as Record<string, string>)[sfilter] || '';
+    $('q-count').textContent = q || sfilter ? `${tag ? tag + ' ' : ''}${q ? '검색 ' : ''}결과 ${list.length}개${waiting ? ` (확인 전 ${waiting}개)` : ''}` : '';
 
     $('rows').innerHTML = slice.length
       ? slice.map(({ p, no }) => {
@@ -247,19 +252,19 @@ import Base from '../../layouts/Base.astro';
             <td class="c">${cell(p.main, p, false)}</td>
             <td class="c">${cell(p.blog, p, true)}</td></tr>`;
         }).join('')
-      : `<tr><td colspan="5" style="text-align:center;color:#6f7d97">${q ? '검색 결과가 없습니다.' : '조회된 글이 없습니다.'}</td></tr>`;
+      : `<tr><td colspan="5" style="text-align:center;color:#6f7d97">${q || sfilter ? '조건에 맞는 글이 없습니다.' : '조회된 글이 없습니다.'}</td></tr>`;
 
     $('pager').innerHTML = pages > 1
       ? Array.from({ length: pages }, (_, i) => {
           const n = i + 1;
-          const cls = [n === page ? 'on' : '', !q && pageState[n] === 'done' ? 'done' : ''].join(' ').trim();
+          const cls = [n === page ? 'on' : '', !q && !sfilter && pageState[n] === 'done' ? 'done' : ''].join(' ').trim();
           return `<button type="button" data-p="${n}" class="${cls}">${n}</button>`;
         }).join('')
       : '';
 
     ($('stop') as HTMLElement).hidden = !working;
     ($('retry') as HTMLElement).hidden = !(
-      !q && pageState[page] === 'done' && !working && slice.some(({ p }) => state(p) === 'err' || state(p) === 'wait')
+      !q && !sfilter && pageState[page] === 'done' && !working && slice.some(({ p }) => state(p) === 'err' || state(p) === 'wait')
     );
   }
 
@@ -405,6 +410,7 @@ import Base from '../../layouts/Base.astro';
       queue = [];
       page = 1;
       query = '';
+      sfilter = '';
       ($('q') as HTMLInputElement).value = '';
       $('blogTitle').textContent = d.blogTitle;
       const a = $('blogUrl') as HTMLAnchorElement;
@@ -437,6 +443,14 @@ import Base from '../../layouts/Base.astro';
     render();
     pump();
   });
+  document.querySelector('#result .sum')!.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-sf]');
+    if (!b) return;
+    const v = b.dataset.sf!;
+    sfilter = v === 'all' || sfilter === v ? '' : (v as 'ok' | 'no' | 'err');
+    page = 1;
+    render();
+  });
   $('q').addEventListener('input', () => {
     query = ($('q') as HTMLInputElement).value.trim();
     page = 1;
@@ -446,7 +460,7 @@ import Base from '../../layouts/Base.astro';
     const b = (e.target as HTMLElement).closest('button');
     if (!b) return;
     page = Number(b.dataset.p);
-    if (!query && !pageState[page]) enqueue(page);
+    if (!query && !sfilter && !pageState[page]) enqueue(page);
     else render();
   });
   try {
