@@ -254,3 +254,5 @@ tr.sub td{background:#f8faff;padding:4px 24px 12px}
 .tl small{color:var(--muted);font-size:.875rem}
 .tl:hover b{color:var(--gc)}
 
+/* add */
+.g-img{--gc:#d6336c;--gb:#fde7ef}
