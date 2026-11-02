@@ -3,7 +3,7 @@
 import { verify } from './_lib/auth.js';
 
 // 블로그 누락 체크 페이지와, 그 페이지가 쓰는 API를 함께 지킵니다.
-const PROTECTED = ['/tools/naver-check', '/api/naver-posts', '/api/naver-check'];
+const PROTECTED = ['/tools/naver-check', '/api/naver-posts', '/api/naver-check' , '/tools/image'];
 
 const text = (msg, status) =>
   new Response(msg, { status, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
