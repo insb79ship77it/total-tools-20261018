@@ -1,0 +1,751 @@
+---
+import ToolPage from '../../layouts/ToolPage.astro';
+---
+<ToolPage title="이미지 변환·글씨 넣기" description="여러 이미지를 JPG, PNG, WebP로 한꺼번에 변환하고 같은 문구를 상·중·하로 넣는 이미지 변환·글씨 넣기 도구." lead="이미지를 한꺼번에 변환하면서 같은 글씨를 넣을 수 있어요. 모든 작업은 내 브라우저 안에서만 이뤄집니다.">
+  <div class="img-layout">
+    <div class="img-stack">
+      <div class="card panel">
+        <label class="img-drop" id="drop" for="file">
+          <b>이미지를 끌어다 놓거나 눌러서 선택</b>
+          <span>JPG, PNG, WebP, GIF(첫 장), SVG · 여러 장 가능 · 붙여넣기(Ctrl+V)도 돼요</span>
+        </label>
+        <input id="file" type="file" accept="image/*" multiple hidden />
+        <div class="img-files" id="files"></div>
+        <div class="btns"><button type="button" class="btn btn-ghost btn-sm" id="clear-files" hidden>모두 지우기</button></div>
+      </div>
+
+      <div class="card panel">
+        <h2 class="img-h">글씨 넣기</h2>
+        <p class="hint">상단·중단·하단마다 글씨, 크기, 색, 굵기, 이미지(로고)를 따로 정해요. 글씨를 비워두면 그 영역은 나오지 않아요.</p>
+        <div id="sections"></div>
+      </div>
+
+      <div class="card panel">
+        <h2 class="img-h">반복 워터마크 (선택)</h2>
+        <p class="hint">문구를 입력하면 이미지 전체에 비스듬히 반복해서 깔려요.</p>
+        <div id="wm-panel"></div>
+      </div>
+
+      <div class="card panel">
+        <h2 class="img-h">저장 설정</h2>
+        <div class="img-grid">
+          <label class="img-sel"><span>저장 형식</span>
+            <select class="field" id="fmt"><option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option></select>
+          </label>
+          <label class="img-rng"><span>화질 <b id="q-v">90</b></span><input type="range" id="quality" min="40" max="100" step="1" value="90" /></label>
+          <label class="img-sel"><span>최대 가로 (px, 비우면 원본)</span><input class="field" id="maxw" type="number" min="1" placeholder="예: 1200" /></label>
+          <label class="img-sel"><span>최대 세로 (px, 비우면 원본)</span><input class="field" id="maxh" type="number" min="1" placeholder="예: 1200" /></label>
+          <label class="img-clr"><span>JPG 배경색 (투명한 부분)</span><input type="color" id="bgc" value="#ffffff" /></label>
+          <label class="img-sel"><span>파일 이름 뒤에 붙일 글자</span><input class="field" id="suffix" type="text" placeholder="예: _thumb" /></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card panel img-side">
+      <div class="img-pvhead">
+        <span class="hint" id="pv-name">미리보기 · 이미지를 추가하면 첫 이미지로 보여줘요</span>
+        <div class="img-pvnav" id="pv-nav" hidden><button type="button" id="pv-prev" aria-label="이전">◀</button><span id="pv-count"></span><button type="button" id="pv-next" aria-label="다음">▶</button></div>
+      </div>
+      <div class="img-pvbox"><canvas id="pv" width="760" height="507" aria-label="미리보기"></canvas></div>
+      <button type="button" class="btn btn-primary" id="run" style="width:100%" disabled>변환 시작</button>
+      <div class="prog" style="margin-top:14px"><div id="rprog"></div></div>
+      <p class="note" id="rstatus" style="margin:10px 0 0">이미지를 추가하면 변환할 수 있어요.</p>
+      <div class="btns" id="zips"></div>
+    </div>
+  </div>
+
+  <Fragment slot="guide">
+    <h2>사용 방법</h2>
+    <h3>글씨 강조</h3>
+    <p>글씨 안에서 대괄호 두 개로 감싼 단어는 박스로 강조되고, 중괄호 두 개로 감싼 단어는 강조 글자색으로 바뀝니다. 예를 들어 대괄호 두 개 안에 단어를 넣으면 그 단어 뒤에 색 박스가 깔려요.</p>
+    <h3>글씨 크기와 위치</h3>
+    <p>글씨 크기는 이미지 가로 길이에 대한 비율이라서 이미지 크기가 달라도 같은 모양으로 들어갑니다. 위치도 이미지 전체에 대한 비율이에요.</p>
+    <h3>저장</h3>
+    <p>변환이 끝나면 파일마다 저장하거나 ZIP으로 받을 수 있어요. 수백 장이면 ZIP이 200MB 정도마다 나뉘어요. 이미지는 서버로 전송되지 않으며, 글꼴만 Google Fonts에서 불러옵니다.</p>
+  </Fragment>
+</ToolPage>
+
+<style is:global>
+  .img-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .img-side { position: sticky; top: 84px; }
+  .img-stack > .card { margin-bottom: 20px; }
+  .img-h { margin: 0 0 4px; font-size: 1.15rem; color: var(--navy); }
+  .img-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; border: 2px dashed #b9ccf5; border-radius: 16px; background: #f7faff; color: var(--blue); cursor: pointer; text-align: center; }
+  .img-drop.over { background: var(--soft); border-color: var(--blue); }
+  .img-drop span { color: var(--muted); font-size: 0.85rem; }
+  .img-files { margin-top: 12px; max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+  .img-files:empty { display: none; }
+  .img-file { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #edf1f7; font-size: 0.85rem; }
+  .img-file:last-child { border-bottom: 0; }
+  .img-file .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--navy); font-weight: 600; }
+  .img-file .sz, .img-file .st { color: var(--muted); white-space: nowrap; }
+  .img-file .st.ok { color: var(--green); font-weight: 700; }
+  .img-file .st.err { color: var(--red); font-weight: 700; }
+  .img-file a.dl { color: var(--blue); font-weight: 700; }
+  .img-file button { border: 0; background: none; color: #8a94a8; cursor: pointer; font-size: 1rem; }
+  .img-sec { padding: 20px 0; border-top: 1px solid var(--line); }
+  .img-sec:first-child { border-top: 0; padding-top: 12px; }
+  .img-sec h3 { margin: 0 0 10px; color: var(--navy); font-size: 1.05rem; }
+  .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 12px; }
+  .img-rng, .img-clr, .img-sel { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); font-weight: 600; }
+  .img-rng b { color: var(--navy); }
+  .img-rng input { width: 100%; accent-color: var(--blue); }
+  .img-clr input[type='color'] { width: 100%; height: 38px; padding: 3px; border: 1.5px solid #cfd8e8; border-radius: 10px; background: #fff; cursor: pointer; }
+  .img-sel .field { padding: 8px 10px; font-size: 0.88rem; min-height: 0; }
+  .img-chk { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--navy); font-size: 0.88rem; }
+  .img-sec details { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 0 14px; }
+  .img-sec summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: var(--navy); font-size: 0.9rem; }
+  .img-sec details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+  .img-sec details .img-grid { padding-bottom: 14px; }
+  .img-sec textarea.field { min-height: 0; }
+  .img-pvhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .img-pvhead .hint { margin: 0; }
+  .img-pvbox { background: repeating-conic-gradient(#eef1f6 0 25%, #fff 0 50%) 0 0 / 16px 16px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .img-pvbox canvas { display: block; width: 100%; height: auto; }
+  .img-pvnav { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
+  .img-pvnav button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; }
+  @media (max-width: 900px) { .img-layout { grid-template-columns: 1fr; } .img-side { position: static; order: -1; } }
+</style>
+
+<script>
+  import { esc } from '../../lib/dom';
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  // ==RENDER-START==
+  type Img = { src: CanvasImageSource; w: number; h: number };
+  type Sec = {
+    text: string; font: string; weight: number; size: number; color: string; accent: string; hl: string;
+    lh: number; ls: number; align: 'left' | 'center' | 'right'; x: number; y: number;
+    stroke: boolean; strokeColor: string; strokeW: number;
+    shadow: boolean; shadowColor: string; shadowBlur: number; shadowDist: number;
+    box: 'none' | 'box' | 'band'; boxColor: string; boxAlpha: number; boxRadius: number;
+    img: Img | null; imgSize: number; imgPos: 'left' | 'top' | 'bottom';
+  };
+  type Wm = { text: string; font: string; weight: number; color: string; size: number; alpha: number; angle: number; gap: number };
+
+  const FONTS = [
+    { id: 'pretendard', name: '프리텐다드', css: '"Pretendard Variable", Pretendard' },
+    { id: 'noto', name: '노토 산스', css: '"Noto Sans KR"' },
+    { id: 'nanumg', name: '나눔고딕', css: '"Nanum Gothic"' },
+    { id: 'nanumm', name: '나눔명조', css: '"Nanum Myeongjo"' },
+    { id: 'pen', name: '나눔손글씨 펜', css: '"Nanum Pen Script"' },
+    { id: 'blackhan', name: '블랙한산스', css: '"Black Han Sans"' },
+    { id: 'jua', name: '주아', css: '"Jua"' },
+    { id: 'dohyeon', name: '도현', css: '"Do Hyeon"' },
+    { id: 'poppins', name: 'Poppins (영문)', css: '"Poppins"' },
+    { id: 'montserrat', name: 'Montserrat (영문)', css: '"Montserrat"' },
+  ];
+  const fam = (id: string) => (FONTS.find((f) => f.id === id) || FONTS[0]).css + ', sans-serif';
+  const hexA = (h: string, a: number) => {
+    const n = parseInt(h.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+
+  function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // [[강조 박스]] , {{강조 글자색}} 을 조각으로 나눕니다.
+  type Run = { t: string; k: 'n' | 'a' | 'b' };
+  function parseRuns(line: string): Run[] {
+    const runs: Run[] = [];
+    const re = /\[\[(.+?)\]\]|\{\{(.+?)\}\}/g;
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(line))) {
+      if (m.index > last) runs.push({ t: line.slice(last, m.index), k: 'n' });
+      runs.push(m[1] !== undefined ? { t: m[1], k: 'b' } : { t: m[2], k: 'a' });
+      last = re.lastIndex;
+    }
+    if (last < line.length) runs.push({ t: line.slice(last), k: 'n' });
+    return runs;
+  }
+
+  function measure(ctx: CanvasRenderingContext2D, t: string, ls: number) {
+    if (!ls) return ctx.measureText(t).width;
+    let w = 0;
+    for (const ch of t) w += ctx.measureText(ch).width + ls;
+    return w;
+  }
+
+  function put(ctx: CanvasRenderingContext2D, t: string, x: number, y: number, ls: number, stroke: boolean) {
+    const f = stroke ? ctx.strokeText.bind(ctx) : ctx.fillText.bind(ctx);
+    if (!ls) { f(t, x, y); return; }
+    let cx = x;
+    for (const ch of t) { f(ch, cx, y); cx += ctx.measureText(ch).width + ls; }
+  }
+
+  function drawSection(ctx: CanvasRenderingContext2D, s: Sec, W: number, H: number) {
+    const lines = s.text.replace(/\s+$/, '').split(/\r?\n/);
+    const hasText = s.text.trim() !== '';
+    if (!hasText && !s.img) return;
+
+    const sc = W / 1000;
+    const fs = (s.size / 100) * W;
+    const lh = fs * s.lh;
+    const ls = s.ls * sc;
+    const hlPad = fs * 0.25;
+    ctx.save();
+    ctx.font = `${s.weight} ${fs}px ${fam(s.font)}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    const rows = hasText
+      ? lines.map((l) => {
+          const runs = parseRuns(l);
+          const w = runs.reduce((a, r) => a + measure(ctx, r.t, ls) + (r.k === 'b' ? hlPad * 2 : 0), 0);
+          return { runs, w };
+        })
+      : [];
+    const textW = rows.reduce((a, r) => Math.max(a, r.w), 0);
+    const textH = rows.length * lh;
+
+    let iw = 0, ih = 0;
+    if (s.img) { iw = (s.imgSize / 100) * W; ih = (iw * s.img.h) / s.img.w; }
+    const gap = fs * 0.4;
+    let cw: number, ch: number;
+    if (!s.img) { cw = textW; ch = textH; }
+    else if (!rows.length) { cw = iw; ch = ih; }
+    else if (s.imgPos === 'left') { cw = iw + gap + textW; ch = Math.max(ih, textH); }
+    else { cw = Math.max(iw, textW); ch = ih + gap + textH; }
+
+    const padX = fs * 0.8;
+    const padY = fs * 0.35;
+    const band = s.box === 'band';
+    const bw = band ? W : cw + padX * 2;
+    const bh = ch + padY * 2;
+    const cx = (s.x / 100) * W;
+    const cy = (s.y / 100) * H;
+    const bx = band ? 0 : cx - bw / 2;
+    const by = cy - bh / 2;
+    const ox = band ? cx - cw / 2 : bx + padX;
+    const oy = by + padY;
+
+    if (s.box !== 'none') {
+      ctx.save();
+      ctx.globalAlpha = s.boxAlpha / 100;
+      ctx.fillStyle = s.boxColor;
+      if (band) ctx.fillRect(bx, by, bw, bh);
+      else { rrect(ctx, bx, by, bw, bh, (s.boxRadius / 100) * (bh / 2)); ctx.fill(); }
+      ctx.restore();
+    }
+
+    // 이미지와 글씨 자리
+    let ix = ox, iy = oy, tx = ox, ty = oy;
+    if (s.img && rows.length) {
+      if (s.imgPos === 'left') { iy = oy + (ch - ih) / 2; tx = ox + iw + gap; ty = oy + (ch - textH) / 2; }
+      else if (s.imgPos === 'top') { ix = ox + (cw - iw) / 2; ty = oy + ih + gap; tx = ox + (cw - textW) / 2; }
+      else { ix = ox + (cw - iw) / 2; ty = oy; tx = ox + (cw - textW) / 2; iy = oy + textH + gap; }
+    } else if (s.img) {
+      ix = ox + (cw - iw) / 2;
+    } else {
+      tx = ox + (cw - textW) / 2;
+    }
+    if (s.img) ctx.drawImage(s.img.src, ix, iy, iw, ih);
+
+    const useStroke = s.stroke && s.strokeW > 0;
+    const setShadow = () => {
+      ctx.shadowColor = hexA(s.shadowColor, 0.65);
+      ctx.shadowBlur = s.shadowBlur * sc;
+      ctx.shadowOffsetX = s.shadowDist * sc;
+      ctx.shadowOffsetY = s.shadowDist * sc;
+    };
+    const clearShadow = () => {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+    };
+
+    rows.forEach((row, i) => {
+      const ly = ty + lh * (i + 0.5);
+      let x = s.align === 'left' ? tx : s.align === 'right' ? tx + textW - row.w : tx + (textW - row.w) / 2;
+      for (const r of row.runs) {
+        const rw = measure(ctx, r.t, ls);
+        if (r.k === 'b') {
+          ctx.fillStyle = s.hl;
+          ctx.fillRect(x, ly - lh * 0.46, rw + hlPad * 2, lh * 0.92);
+          x += hlPad;
+        }
+        if (useStroke) {
+          ctx.lineWidth = s.strokeW * sc * 2;
+          ctx.strokeStyle = s.strokeColor;
+          ctx.lineJoin = 'round';
+          ctx.miterLimit = 2;
+          if (s.shadow) setShadow();
+          put(ctx, r.t, x, ly, ls, true);
+          clearShadow();
+        }
+        ctx.fillStyle = r.k === 'a' ? s.accent : s.color;
+        if (s.shadow && !useStroke) setShadow();
+        put(ctx, r.t, x, ly, ls, false);
+        clearShadow();
+        x += rw + (r.k === 'b' ? hlPad : 0);
+      }
+    });
+    ctx.restore();
+  }
+
+  function drawTile(ctx: CanvasRenderingContext2D, W: number, H: number, wm: Wm) {
+    if (!wm.text.trim()) return;
+    const fs = (wm.size / 100) * W;
+    ctx.save();
+    ctx.globalAlpha = wm.alpha / 100;
+    ctx.font = `${wm.weight} ${fs}px ${fam(wm.font)}`;
+    ctx.fillStyle = wm.color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate((wm.angle * Math.PI) / 180);
+    const tw = Math.max(fs, ctx.measureText(wm.text).width + (wm.gap / 100) * W);
+    const th = Math.max(fs * 1.2, fs * 1.6 + (wm.gap / 100) * W * 0.6);
+    const R = Math.hypot(W, H) / 2 + tw;
+    let row = 0;
+    for (let y = -R; y <= R; y += th, row++) {
+      for (let x = -R + (row % 2 ? tw / 2 : 0); x <= R; x += tw) ctx.fillText(wm.text, x, y);
+    }
+    ctx.restore();
+  }
+
+  function compose(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, W: number, H: number, bg: string | null, secs: Sec[], wm: Wm) {
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); }
+    if (src) ctx.drawImage(src, 0, 0, W, H);
+    else {
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, '#5b7db1');
+      g.addColorStop(1, '#2c3e63');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    drawTile(ctx, W, H, wm);
+    for (const s of secs) drawSection(ctx, s, W, H);
+    ctx.restore();
+  }
+  // ==RENDER-END==
+
+  // ==ZIP-START==
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(buf: Uint8Array) {
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  }
+  // 이미지는 이미 압축된 형식이라 압축 없이(store) 묶습니다.
+  async function makeZip(items: { name: string; blob: Blob }[]): Promise<Blob> {
+    const enc = new TextEncoder();
+    const parts: BlobPart[] = [];
+    const central: BlobPart[] = [];
+    let cdSize = 0;
+    let offset = 0;
+    for (const it of items) {
+      const data = new Uint8Array(await it.blob.arrayBuffer());
+      const name = enc.encode(it.name);
+      const crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+      lh.setUint16(8, 0, true); lh.setUint16(10, 0, true); lh.setUint16(12, 0x21, true);
+      lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+      lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      parts.push(lh.buffer, name, data);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+      ch.setUint16(10, 0, true); ch.setUint16(12, 0, true); ch.setUint16(14, 0x21, true);
+      ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+      ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
+      central.push(ch.buffer, name);
+      cdSize += 46 + name.length;
+      offset += 30 + name.length + data.length;
+    }
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, items.length, true); end.setUint16(10, items.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });
+  }
+  // ==ZIP-END==
+
+  // ---------- 글꼴 (Google Fonts) ----------
+  const gf = document.createElement('link');
+  gf.rel = 'stylesheet';
+  gf.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Jua&family=Do+Hyeon&family=Poppins:wght@400;500;700;900&family=Montserrat:wght@400;500;700;900&display=swap';
+  document.head.append(gf);
+
+  // ---------- 설정값 ----------
+  const mk = (o: Partial<Sec>): Sec => ({
+    text: '', font: 'pretendard', weight: 700, size: 5, color: '#ffffff', accent: '#ffd400', hl: '#1f4bd8',
+    lh: 1.3, ls: 0, align: 'center', x: 50, y: 50,
+    stroke: false, strokeColor: '#000000', strokeW: 4,
+    shadow: false, shadowColor: '#000000', shadowBlur: 8, shadowDist: 3,
+    box: 'none', boxColor: '#000000', boxAlpha: 60, boxRadius: 30,
+    img: null, imgSize: 8, imgPos: 'left', ...o,
+  });
+  const secs: Sec[] = [
+    mk({ text: '상단 작은 문구', size: 4.8, y: 13, shadow: true }),
+    mk({ text: '중단 큰 문구\n두 줄도 가능해요', weight: 900, size: 9.5, lh: 1.25, y: 50, stroke: true, strokeColor: '#1b2a4a', strokeW: 6, shadow: true }),
+    mk({ text: 'example.com', size: 4, color: '#222222', y: 90, box: 'box', boxColor: '#ffffff', boxAlpha: 95, boxRadius: 35 }),
+  ];
+  const wm: Wm = { text: '', font: 'pretendard', weight: 700, color: '#ffffff', size: 4, alpha: 22, angle: -30, gap: 8 };
+
+  // ---------- 설정 화면 만들기 ----------
+  const rng = (i: string | number, k: string, label: string, min: number, max: number, step: number, val: number, unit = '') =>
+    `<label class="img-rng"><span>${label} <b>${val}</b>${unit}</span><input type="range" data-s="${i}" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></label>`;
+  const clr = (i: string | number, k: string, label: string, val: string) =>
+    `<label class="img-clr"><span>${label}</span><input type="color" data-s="${i}" data-k="${k}" value="${val}"></label>`;
+  const sel = (i: string | number, k: string, label: string, opts: [string, string][], val: string | number) =>
+    `<label class="img-sel"><span>${label}</span><select class="field" data-s="${i}" data-k="${k}">${opts.map(([v, t]) => `<option value="${v}"${v === String(val) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`;
+  const chk = (i: string | number, k: string, label: string, val: boolean) =>
+    `<label class="img-chk"><input type="checkbox" data-s="${i}" data-k="${k}"${val ? ' checked' : ''}> ${label}</label>`;
+  const FONT_OPTS: [string, string][] = FONTS.map((f) => [f.id, f.name]);
+  const WEIGHTS: [string, string][] = [['400', '가늘게'], ['500', '보통'], ['700', '굵게'], ['900', '아주 굵게']];
+
+  const TITLES = ['상단 (작은 글씨)', '중단 (큰 글씨)', '하단 (작은 글씨)'];
+  $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec">
+    <h3>${TITLES[i]}</h3>
+    <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
+    <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색</p>
+    <div class="img-grid">
+      ${sel(i, 'font', '글꼴', FONT_OPTS, s.font)}${sel(i, 'weight', '굵기', WEIGHTS, s.weight)}
+      ${clr(i, 'color', '글자색', s.color)}${sel(i, 'align', '정렬', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']], s.align)}
+      ${rng(i, 'size', '크기', 1, 25, 0.1, s.size, '%')}${rng(i, 'lh', '줄 간격', 0.8, 2, 0.05, s.lh)}
+      ${rng(i, 'ls', '자간', -5, 20, 0.5, s.ls)}${rng(i, 'y', '세로 위치', 0, 100, 0.5, s.y, '%')}
+      ${rng(i, 'x', '가로 위치', 0, 100, 0.5, s.x, '%')}
+    </div>
+    <details><summary>강조 · 테두리 · 그림자</summary><div class="img-grid">
+      ${clr(i, 'hl', '박스 강조 배경색', s.hl)}${clr(i, 'accent', '강조 글자색', s.accent)}
+      ${chk(i, 'stroke', '테두리', s.stroke)}${clr(i, 'strokeColor', '테두리 색', s.strokeColor)}
+      ${rng(i, 'strokeW', '테두리 두께', 0, 20, 0.5, s.strokeW)}<span></span>
+      ${chk(i, 'shadow', '그림자', s.shadow)}${clr(i, 'shadowColor', '그림자 색', s.shadowColor)}
+      ${rng(i, 'shadowBlur', '그림자 흐림', 0, 40, 1, s.shadowBlur)}${rng(i, 'shadowDist', '그림자 거리', 0, 30, 1, s.shadowDist)}
+    </div></details>
+    <details><summary>배경 박스</summary><div class="img-grid">
+      ${sel(i, 'box', '모양', [['none', '없음'], ['box', '박스 (글씨에 맞춤)'], ['band', '가로 전체 띠']], s.box)}${clr(i, 'boxColor', '박스 색', s.boxColor)}
+      ${rng(i, 'boxAlpha', '박스 투명도(진하기)', 0, 100, 1, s.boxAlpha, '%')}${rng(i, 'boxRadius', '모서리 둥글기', 0, 100, 1, s.boxRadius, '%')}
+    </div></details>
+    <details><summary>이미지(로고)</summary><div class="img-grid">
+      <label class="img-sel" style="grid-column:1/-1"><span>이미지 올리기 (PNG, JPG, SVG)</span><input type="file" accept="image/*" data-simg="${i}"></label>
+      ${rng(i, 'imgSize', '이미지 크기', 2, 60, 0.5, s.imgSize, '%')}${sel(i, 'imgPos', '이미지 위치', [['left', '글씨 왼쪽'], ['top', '글씨 위'], ['bottom', '글씨 아래']], s.imgPos)}
+      <button type="button" class="btn btn-ghost btn-sm" data-sclear="${i}">이미지 지우기</button><span class="hint" data-sname="${i}" style="margin:0"></span>
+    </div></details>
+  </section>`).join('');
+
+  $('wm-panel').innerHTML = `<div class="img-grid">
+    <label class="img-sel" style="grid-column:1/-1"><span>문구</span><input class="field" type="text" data-s="w" data-k="text" placeholder="비워두면 사용하지 않아요"></label>
+    ${sel('w', 'font', '글꼴', FONT_OPTS, wm.font)}${sel('w', 'weight', '굵기', WEIGHTS, wm.weight)}
+    ${clr('w', 'color', '글자색', wm.color)}${rng('w', 'size', '크기', 1, 15, 0.1, wm.size, '%')}
+    ${rng('w', 'alpha', '진하기', 0, 100, 1, wm.alpha, '%')}${rng('w', 'angle', '기울기', -60, 60, 1, wm.angle, '°')}
+    ${rng('w', 'gap', '간격', 0, 30, 0.5, wm.gap, '%')}
+  </div>`;
+
+  // ---------- 입력 반영 ----------
+  function onCtl(e: Event) {
+    const el = e.target as HTMLInputElement;
+    const si = el.dataset.s;
+    const k = el.dataset.k;
+    if (si === undefined || !k) return;
+    const t = (si === 'w' ? wm : secs[Number(si)]) as any;
+    t[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' || k === 'weight' ? Number(el.value) : el.value;
+    const b = el.closest('label')?.querySelector('b');
+    if (b && el.type === 'range') b.textContent = el.value;
+    schedule();
+  }
+  for (const id of ['sections', 'wm-panel']) {
+    $(id).addEventListener('input', onCtl);
+    $(id).addEventListener('change', onCtl);
+  }
+
+  // ---------- 이미지 읽기 ----------
+  async function decode(file: Blob): Promise<Img & { close: () => void }> {
+    try {
+      const bmp = await createImageBitmap(file);
+      return { src: bmp, w: bmp.width, h: bmp.height, close: () => bmp.close() };
+    } catch {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const w = img.naturalWidth || 1024;
+      const h = img.naturalHeight || Math.round(w * 0.6667);
+      return { src: img, w, h, close: () => URL.revokeObjectURL(url) };
+    }
+  }
+
+  $('sections').addEventListener('change', async (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset.simg === undefined || !el.files?.[0]) return;
+    const i = Number(el.dataset.simg);
+    try {
+      const d = await decode(el.files[0]);
+      secs[i].img = { src: d.src, w: d.w, h: d.h };
+      document.querySelector(`[data-sname="${i}"]`)!.textContent = el.files[0].name;
+    } catch {
+      document.querySelector(`[data-sname="${i}"]`)!.textContent = '이미지를 읽지 못했어요';
+    }
+    schedule();
+  });
+  $('sections').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-sclear]');
+    if (!b) return;
+    const i = Number(b.dataset.sclear);
+    secs[i].img = null;
+    const input = document.querySelector<HTMLInputElement>(`input[data-simg="${i}"]`);
+    if (input) input.value = '';
+    document.querySelector(`[data-sname="${i}"]`)!.textContent = '';
+    schedule();
+  });
+
+  // ---------- 파일 목록 ----------
+  let files: File[] = [];
+  let rows: HTMLElement[] = [];
+  let running = false;
+  const kb = (n: number) => (n >= 1048576 ? (n / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB');
+
+  function renderFiles() {
+    $('files').innerHTML = files
+      .map((f, i) => `<div class="img-file"><span class="n" title="${esc(f.name)}">${esc(f.name)}</span><span class="sz">${kb(f.size)}</span><span class="st">대기</span><a class="dl" hidden>저장</a><button type="button" data-rm="${i}" aria-label="삭제">✕</button></div>`)
+      .join('');
+    rows = [...($('files').children as HTMLCollectionOf<HTMLElement>)];
+    ($('clear-files') as HTMLElement).hidden = !files.length;
+    const run = $<HTMLButtonElement>('run');
+    run.disabled = !files.length || running;
+    run.textContent = files.length ? `변환 시작 (${files.length}장)` : '변환 시작';
+    $('rstatus').textContent = files.length ? '설정을 맞추고 변환 시작을 누르세요.' : '이미지를 추가하면 변환할 수 있어요.';
+    $('zips').innerHTML = '';
+    $('rprog').style.width = '0';
+  }
+
+  function addFiles(list: FileList | File[] | null) {
+    if (running || !list) return;
+    const seen = new Set(files.map((f) => `${f.name}|${f.size}|${f.lastModified}`));
+    let added = 0;
+    for (const f of Array.from(list)) {
+      if (!f.type.startsWith('image/')) continue;
+      const key = `${f.name}|${f.size}|${f.lastModified}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      files.push(f);
+      added++;
+    }
+    if (!added) return;
+    renderFiles();
+    loadPreview();
+  }
+
+  $('file').addEventListener('change', (e) => { addFiles((e.target as HTMLInputElement).files); (e.target as HTMLInputElement).value = ''; });
+  const drop = $('drop');
+  ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => addFiles((e as DragEvent).dataTransfer?.files || null));
+  document.addEventListener('paste', (e) => addFiles(e.clipboardData?.files || null));
+  $('files').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-rm]');
+    if (!b || running) return;
+    files.splice(Number(b.dataset.rm), 1);
+    renderFiles();
+    loadPreview();
+  });
+  $('clear-files').addEventListener('click', () => { if (running) return; files = []; renderFiles(); loadPreview(); });
+
+  // ---------- 미리보기 ----------
+  let prev: (Img & { close: () => void }) | null = null;
+  let pIdx = 0;
+  let raf = 0;
+  let token = 0;
+
+  function updateNav() {
+    ($('pv-nav') as HTMLElement).hidden = files.length < 2;
+    $('pv-count').textContent = `${pIdx + 1} / ${files.length}`;
+    $('pv-name').textContent = files.length ? `미리보기 · ${files[pIdx].name}` : '미리보기 · 이미지를 추가하면 첫 이미지로 보여줘요';
+  }
+  async function loadPreview() {
+    if (prev) prev.close();
+    prev = null;
+    if (files.length) {
+      pIdx = Math.min(pIdx, files.length - 1);
+      try { prev = await decode(files[pIdx]); } catch { prev = null; }
+    } else pIdx = 0;
+    updateNav();
+    schedule();
+  }
+  $('pv-prev').addEventListener('click', () => { pIdx = (pIdx - 1 + files.length) % files.length; loadPreview(); });
+  $('pv-next').addEventListener('click', () => { pIdx = (pIdx + 1) % files.length; loadPreview(); });
+
+  async function ensureFonts() {
+    const jobs: Promise<unknown>[] = [];
+    const want = (font: string, weight: number, text: string) => {
+      const f = `${weight} 40px ${fam(font)}`;
+      const t = text.replace(/[\[\]{}]/g, '') || 'Ab';
+      try { if (!document.fonts.check(f, t)) jobs.push(document.fonts.load(f, t)); } catch {}
+    };
+    secs.forEach((s) => s.text.trim() && want(s.font, s.weight, s.text));
+    if (wm.text.trim()) want(wm.font, wm.weight, wm.text);
+    await Promise.allSettled(jobs);
+  }
+
+  function schedule() {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(drawPreview);
+  }
+  async function drawPreview() {
+    const my = ++token;
+    await ensureFonts();
+    if (my !== token) return;
+    const c = $('pv') as HTMLCanvasElement;
+    const sw = prev ? prev.w : 1000;
+    const sh = prev ? prev.h : 667;
+    const W = Math.min(sw, 760);
+    c.width = W;
+    c.height = Math.max(1, Math.round((sh * W) / sw));
+    compose(c.getContext('2d')!, prev ? prev.src : null, c.width, c.height, null, secs, wm);
+  }
+  document.fonts.ready.then(schedule);
+
+  // ---------- 변환 ----------
+  const fmtEl = $<HTMLSelectElement>('fmt');
+  const qEl = $<HTMLInputElement>('quality');
+  const syncQ = () => {
+    $('q-v').textContent = qEl.value;
+    qEl.disabled = fmtEl.value === 'png';
+  };
+  qEl.addEventListener('input', syncQ);
+  fmtEl.addEventListener('change', syncQ);
+  syncQ();
+
+  const MIME: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+  const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+  async function convert(file: File) {
+    const fmt = fmtEl.value;
+    const maxW = Number($<HTMLInputElement>('maxw').value) || Infinity;
+    const maxH = Number($<HTMLInputElement>('maxh').value) || Infinity;
+    const d = await decode(file);
+    const scale = Math.min(1, maxW / d.w, maxH / d.h);
+    const W = Math.max(1, Math.round(d.w * scale));
+    const H = Math.max(1, Math.round(d.h * scale));
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    compose(c.getContext('2d')!, d.src, W, H, fmt === 'jpg' ? $<HTMLInputElement>('bgc').value : null, secs, wm);
+    d.close();
+    const blob = await new Promise<Blob | null>((res) => c.toBlob(res, MIME[fmt], Number(qEl.value) / 100));
+    c.width = c.height = 0;
+    if (!blob) throw new Error('변환 실패');
+    return blob;
+  }
+
+  type Result = { name: string; blob: Blob };
+  let results: (Result | null)[] = [];
+  const PART_BYTES = 200 * 1024 * 1024;
+
+  async function run() {
+    if (running || !files.length) return;
+    running = true;
+    const btn = $<HTMLButtonElement>('run');
+    btn.disabled = true;
+    $('go-note')?.remove();
+    $('zips').innerHTML = '';
+    results = [];
+    await ensureFonts();
+    const suffix = $<HTMLInputElement>('suffix').value.trim();
+    const set = (i: number, text: string, cls = '') => {
+      const st = rows[i].querySelector('.st') as HTMLElement;
+      st.textContent = text;
+      st.className = 'st ' + cls;
+    };
+    let ok = 0, fail = 0, srcSum = 0, outSum = 0, warn = '';
+    const t0 = Date.now();
+    for (let i = 0; i < files.length; i++) {
+      set(i, '변환 중…');
+      $('rstatus').textContent = `${i + 1} / ${files.length}장 변환 중 · 소요시간 ${Math.round((Date.now() - t0) / 1000)}초`;
+      try {
+        const blob = await convert(files[i]);
+        const ext = EXT[blob.type] || fmtEl.value;
+        if (blob.type !== MIME[fmtEl.value]) warn = '이 브라우저는 선택한 형식으로 저장하지 못해 PNG로 저장됐어요.';
+        const name = files[i].name.replace(/\.[^.]+$/, '') + suffix + '.' + ext;
+        results[i] = { name, blob };
+        srcSum += files[i].size;
+        outSum += blob.size;
+        ok++;
+        set(i, `완료 · ${kb(blob.size)}`, 'ok');
+        const a = rows[i].querySelector('a.dl') as HTMLAnchorElement;
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.hidden = false;
+      } catch {
+        results[i] = null;
+        fail++;
+        set(i, '실패', 'err');
+      }
+      $('rprog').style.width = ((i + 1) / files.length) * 100 + '%';
+      await new Promise((r) => setTimeout(r, 0)); // 화면이 멈추지 않게 한 템포 쉽니다
+    }
+
+    const sec = Math.round((Date.now() - t0) / 1000);
+    $('rstatus').textContent = `완료 · ${ok}장 변환${fail ? `, ${fail}장 실패` : ''} · ${kb(srcSum)} → ${kb(outSum)} · 소요시간 ${sec}초${warn ? ' · ' + warn : ''}`;
+
+    // ZIP: 200MB 정도마다 나눕니다.
+    const parts: Result[][] = [];
+    let cur: Result[] = [];
+    let bytes = 0;
+    for (const r of results) {
+      if (!r) continue;
+      if (cur.length && bytes + r.blob.size > PART_BYTES) { parts.push(cur); cur = []; bytes = 0; }
+      cur.push(r);
+      bytes += r.blob.size;
+    }
+    if (cur.length) parts.push(cur);
+    $('zips').innerHTML = parts
+      .map((p, n) => `<button type="button" class="btn btn-ghost btn-sm" data-zip="${n}">${parts.length > 1 ? `ZIP ${n + 1}` : 'ZIP으로 받기'} (${p.length}장 · ${kb(p.reduce((a, r) => a + r.blob.size, 0))})</button>`)
+      .join('');
+    ($('zips') as any)._parts = parts;
+    running = false;
+    btn.disabled = false;
+  }
+  $('run').addEventListener('click', run);
+
+  $('zips').addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-zip]');
+    if (!b) return;
+    const parts = ($('zips') as any)._parts as Result[][];
+    const n = Number(b.dataset.zip);
+    const old = b.textContent;
+    b.disabled = true;
+    b.textContent = 'ZIP 만드는 중…';
+    // 같은 이름이 있으면 (2), (3)을 붙입니다.
+    const used = new Map<string, number>();
+    const items = parts[n].map((r) => {
+      const c = (used.get(r.name) || 0) + 1;
+      used.set(r.name, c);
+      return { name: c > 1 ? r.name.replace(/(\.[^.]+)$/, `(${c})$1`) : r.name, blob: r.blob };
+    });
+    const zip = await makeZip(items);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zip);
+    a.download = parts.length > 1 ? `images_${n + 1}.zip` : 'images.zip';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    b.disabled = false;
+    b.textContent = old;
+  });
+
+  renderFiles();
+  schedule();
+</script>
