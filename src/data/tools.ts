@@ -15,6 +15,7 @@ export const ICONS: Record<string, string> = {
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
   favicon: '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M9 16V8h5M9 12h4"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
 };
 
 export type Tool = {
@@ -27,8 +28,8 @@ export type Tool = {
   primary?: boolean;
 };
 
-export const groups = ['네트워크', '블로그·마케팅', '텍스트', '개발·계산'];
-export const groupKey: Record<string, string> = { '네트워크': 'net', '블로그·마케팅': 'blog', '텍스트': 'text', '개발·계산': 'dev' };
+export const groups = ['네트워크', '블로그·마케팅', '텍스트', '개발·계산', '이미지 관리'];
+export const groupKey: Record<string, string> = { '네트워크': 'net', '블로그·마케팅': 'blog', '텍스트': 'text', '개발·계산': 'dev' , '이미지 관리': 'img'};
 
 export const tools: Tool[] = [
   { slug: 'speed', name: '인터넷 속도체크', short: '속도체크', desc: '다운로드 속도·핑·지터 측정', icon: 'speed', group: '네트워크', primary: true },
@@ -47,4 +48,5 @@ export const tools: Tool[] = [
   { slug: 'url-encode', name: 'URL 인코딩', short: 'URL 인코딩', desc: 'URL 인코딩과 디코딩', icon: 'url', group: '개발·계산' },
   { slug: 'px-rem', name: 'PX ↔ REM 변환', short: 'PX·REM', desc: 'CSS 단위 실시간 변환', icon: 'ruler', group: '개발·계산' },
   { slug: 'dday', name: 'D-Day 계산기', short: 'D-Day', desc: '디데이와 날짜 간격 계산', icon: 'calendar', group: '개발·계산' },
+  { slug: 'image', name: '이미지 변환·글씨 넣기', short: '이미지', desc: '이미지 변환과 같은 글씨 일괄 넣기', icon: 'image', group: '이미지 관리' },
 ];
