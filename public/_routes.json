@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "include": ["/api/*", "/tools/naver-check", "/tools/naver-check/*"],
+  "include": ["/api/*", "/tools/naver-check", "/tools/naver-check/*" , "/tools/image", "/tools/image/*"],
   "exclude": []
 }
