@@ -12,10 +12,22 @@ import ToolPage from '../../layouts/ToolPage.astro';
         <input id="file" type="file" accept="image/*" multiple hidden />
         <details class="img-pat" open>
           <summary>배경 패턴으로 이미지 만들기 (사진 없이 시작)</summary>
+          <p class="hint" style="margin:0 0 8px">패턴을 여러 개 골라서 한 번에 이미지로 만들 수 있어요. (눌러서 선택·해제)</p>
           <div class="img-patgrid" id="pat-grid"></div>
+          <div class="btns" style="margin:8px 0 0">
+            <button type="button" class="btn btn-ghost btn-sm" id="pat-all">전체 선택</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="pat-none">선택 해제</button>
+            <span class="hint" id="pat-count" style="margin:0;align-self:center"></span>
+          </div>
           <div class="img-grid">
-            <label class="img-clr"><span>배경색</span><input type="color" id="pat-bg" value="#243b6b" /></label>
+            <label class="img-sel"><span>배경 방식</span>
+              <select class="field" id="pat-bgmode"><option value="solid">단색</option><option value="grad">그라데이션</option></select>
+            </label>
+            <label class="img-clr"><span id="pat-bg-l">배경색</span><input type="color" id="pat-bg" value="#243b6b" /></label>
+            <label class="img-clr" id="pat-bg2-w" hidden><span>배경색 2</span><input type="color" id="pat-bg2" value="#0b1530" /></label>
+            <label class="img-rng" id="pat-angle-w" hidden><span>그라데이션 각도 <b>135</b>°</span><input type="range" id="pat-angle" min="0" max="360" step="5" value="135" /></label>
             <label class="img-clr"><span>패턴색</span><input type="color" id="pat-fg" value="#3d5a9c" /></label>
+            <label class="img-rng"><span>무늬 크기 <b>1</b>배</span><input type="range" id="pat-scale" min="0.4" max="3" step="0.1" value="1" /></label>
             <label class="img-sel"><span>이미지 크기</span>
               <select class="field" id="pat-size">
                 <option value="1000x1000">정사각 1000×1000</option>
@@ -26,7 +38,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
                 <option value="1080x1350">세로 1080×1350</option>
               </select>
             </label>
-            <div style="display:flex;align-items:flex-end"><button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%">이 패턴으로 이미지 추가</button></div>
+            <div style="display:flex;align-items:flex-end"><button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%">선택한 패턴으로 이미지 추가</button></div>
           </div>
         </details>
         <div class="img-files" id="files"></div>
@@ -127,8 +139,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-pat { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 0 14px 14px; }
   .img-pat summary { cursor: pointer; padding: 12px 0; font-weight: 700; color: var(--navy); font-size: 0.92rem; }
   .img-patgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px; max-height: 190px; overflow: auto; padding: 3px; }
-  .img-patgrid .pat { aspect-ratio: 1; padding: 0; border: 2px solid #fff; border-radius: 10px; background-size: cover; background-position: center; cursor: pointer; box-shadow: 0 0 0 1px var(--line); }
-  .img-patgrid .pat.on { box-shadow: 0 0 0 2px var(--blue); }
+  .img-patgrid .pat { position: relative; aspect-ratio: 1; padding: 0; border: 2px solid #fff; border-radius: 10px; background-size: cover; background-position: center; cursor: pointer; box-shadow: 0 0 0 1px var(--line); }
+  .img-patgrid .pat.on { box-shadow: 0 0 0 3px var(--blue); }
+  .img-patgrid .pat.on::after { content: '✓'; position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 11px; line-height: 18px; text-align: center; font-weight: 800; }
   .img-file.on { background: #f3f7ff; }
   .img-file .n { cursor: pointer; }
   .img-file .n:hover { color: var(--blue); text-decoration: underline; }
@@ -503,10 +516,21 @@ import ToolPage from '../../layouts/ToolPage.astro';
     }],
   ];
 
-  function makeSvg(id: string, bg: string, fg: string, w: number, h: number, u = (56 * Math.max(w, h)) / 1000) {
+  // bg 는 "#rrggbb" 또는 "grad:#색1:#색2:각도" 형식입니다.
+  function gradDef(c1: string, c2: string, ang: number, w: number, h: number) {
+    const a = (ang * Math.PI) / 180;
+    const L = Math.abs(w * Math.sin(a)) + Math.abs(h * Math.cos(a));
+    const cx = w / 2, cy = h / 2;
+    const dx = (Math.sin(a) * L) / 2, dy = (Math.cos(a) * L) / 2;
+    return `<defs><linearGradient id="bgg" gradientUnits="userSpaceOnUse" x1="${(cx - dx).toFixed(1)}" y1="${(cy + dy).toFixed(1)}" x2="${(cx + dx).toFixed(1)}" y2="${(cy - dy).toFixed(1)}"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#bgg)"/>`;
+  }
+  function makeSvg(id: string, bg: string, fg: string, w: number, h: number, scale = 1, uBase = (56 * Math.max(w, h)) / 1000) {
     const p = PATTERNS.find((x) => x[0] === id) || PATTERNS[0];
-    const body = p[2]({ u, fg, bg, w, h, r: rngSeed(PATTERNS.indexOf(p) * 977 + 13) });
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="${bg}"/>${body}</svg>`;
+    const g = bg.startsWith('grad:') ? bg.split(':') : null;
+    const c1 = g ? g[1] : bg;
+    const base = g ? gradDef(g[1], g[2], Number(g[3]) || 0, w, h) : `<rect width="100%" height="100%" fill="${bg}"/>`;
+    const body = p[2]({ u: uBase * scale, fg, bg: c1, w, h, r: rngSeed(PATTERNS.indexOf(p) * 977 + 13) });
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${base}${body}</svg>`;
   }
   // ==PAT-END==
 
@@ -785,7 +809,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       } else {
         pIdx = 0;
         const [w, h] = patState.size.split('x').map(Number);
-        next = await svgToImg(makeSvg(patState.id, patState.bg, patState.fg, w, h), w, h);
+        next = await svgToImg(patSvg(patState.active, w, h), w, h);
       }
     } catch { next = null; }
     if (my !== loadToken) { next?.close(); return; }
@@ -837,27 +861,69 @@ import ToolPage from '../../layouts/ToolPage.astro';
   document.fonts.ready.then(schedule);
 
   // ---------- 배경 패턴 ----------
-  const patState = { id: PATTERNS[0][0], bg: '#243b6b', fg: '#3d5a9c', size: '1000x1000' };
+  const patState = {
+    sel: new Set<string>([PATTERNS[0][0]]),
+    active: PATTERNS[0][0], // 미리보기에 보여줄 패턴 (마지막으로 누른 것)
+    mode: 'solid', bg: '#243b6b', bg2: '#0b1530', angle: 135, fg: '#3d5a9c', scale: 1, size: '1000x1000',
+  };
+  const bgSpec = () => (patState.mode === 'grad' ? `grad:${patState.bg}:${patState.bg2}:${patState.angle}` : patState.bg);
+  const patSvg = (id: string, w: number, h: number) => makeSvg(id, bgSpec(), patState.fg, w, h, patState.scale);
+
   function renderPats() {
     $('pat-grid').innerHTML = PATTERNS.map(([id, name]) => {
-      const svg = makeSvg(id, patState.bg, patState.fg, 150, 150, 30);
-      return `<button type="button" class="pat${id === patState.id ? ' on' : ''}" data-pat="${id}" title="${name}" aria-label="${name}" style="background-image:url('data:image/svg+xml,${encodeURIComponent(svg)}')"></button>`;
+      const svg = makeSvg(id, bgSpec(), patState.fg, 150, 150, patState.scale, 30);
+      return `<button type="button" class="pat${patState.sel.has(id) ? ' on' : ''}" data-pat="${id}" title="${name}" aria-label="${name}" aria-pressed="${patState.sel.has(id)}" style="background-image:url('data:image/svg+xml,${encodeURIComponent(svg)}')"></button>`;
     }).join('');
+    const n = patState.sel.size;
+    $('pat-count').textContent = `${n}개 선택`;
+    $('pat-add').textContent = n > 1 ? `선택한 패턴 ${n}개로 이미지 추가` : '이 패턴으로 이미지 추가';
   }
   const patChanged = () => { renderPats(); if (!files.length) loadPreview(); };
+
   $('pat-grid').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-pat]');
     if (!b) return;
-    patState.id = b.dataset.pat!;
+    const id = b.dataset.pat!;
+    if (patState.sel.has(id) && patState.sel.size > 1) {
+      patState.sel.delete(id);
+      if (patState.active === id) patState.active = [...patState.sel].pop()!;
+    } else {
+      patState.sel.add(id);
+      patState.active = id;
+    }
     patChanged();
   });
+  $('pat-all').addEventListener('click', () => { PATTERNS.forEach(([id]) => patState.sel.add(id)); patChanged(); });
+  $('pat-none').addEventListener('click', () => { patState.sel = new Set([patState.active]); patChanged(); });
+
+  const showBgMode = () => {
+    const grad = patState.mode === 'grad';
+    ($('pat-bg2-w') as HTMLElement).hidden = !grad;
+    ($('pat-angle-w') as HTMLElement).hidden = !grad;
+    $('pat-bg-l').textContent = grad ? '배경색 1' : '배경색';
+  };
+  $('pat-bgmode').addEventListener('change', (e) => { patState.mode = (e.target as HTMLSelectElement).value; showBgMode(); patChanged(); });
   $('pat-bg').addEventListener('input', (e) => { patState.bg = (e.target as HTMLInputElement).value; patChanged(); });
+  $('pat-bg2').addEventListener('input', (e) => { patState.bg2 = (e.target as HTMLInputElement).value; patChanged(); });
   $('pat-fg').addEventListener('input', (e) => { patState.fg = (e.target as HTMLInputElement).value; patChanged(); });
+  $('pat-angle').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    patState.angle = Number(el.value);
+    el.closest('label')!.querySelector('b')!.textContent = el.value;
+    patChanged();
+  });
+  $('pat-scale').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    patState.scale = Number(el.value);
+    el.closest('label')!.querySelector('b')!.textContent = el.value;
+    patChanged();
+  });
   $('pat-size').addEventListener('change', (e) => { patState.size = (e.target as HTMLSelectElement).value; if (!files.length) loadPreview(); });
   $('pat-add').addEventListener('click', () => {
     const [w, h] = patState.size.split('x').map(Number);
-    const svg = makeSvg(patState.id, patState.bg, patState.fg, w, h);
-    addFiles([new File([svg], `pattern-${patState.id}-${w}x${h}.svg`, { type: 'image/svg+xml' })]);
+    const made = PATTERNS.filter(([id]) => patState.sel.has(id)).map(([id]) =>
+      new File([patSvg(id, w, h)], `pattern-${id}-${w}x${h}.svg`, { type: 'image/svg+xml' }));
+    addFiles(made);
   });
 
   // ---------- 변환 ----------
