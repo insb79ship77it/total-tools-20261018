@@ -10,6 +10,25 @@ import ToolPage from '../../layouts/ToolPage.astro';
           <span>JPG, PNG, WebP, GIF(첫 장), SVG · 여러 장 가능 · 붙여넣기(Ctrl+V)도 돼요</span>
         </label>
         <input id="file" type="file" accept="image/*" multiple hidden />
+        <details class="img-pat" open>
+          <summary>배경 패턴으로 이미지 만들기 (사진 없이 시작)</summary>
+          <div class="img-patgrid" id="pat-grid"></div>
+          <div class="img-grid">
+            <label class="img-clr"><span>배경색</span><input type="color" id="pat-bg" value="#243b6b" /></label>
+            <label class="img-clr"><span>패턴색</span><input type="color" id="pat-fg" value="#3d5a9c" /></label>
+            <label class="img-sel"><span>이미지 크기</span>
+              <select class="field" id="pat-size">
+                <option value="1000x1000">정사각 1000×1000</option>
+                <option value="600x600">정사각 600×600</option>
+                <option value="1200x630">가로 1200×630</option>
+                <option value="700x467">가로 700×467</option>
+                <option value="1920x1080">16:9 1920×1080</option>
+                <option value="1080x1350">세로 1080×1350</option>
+              </select>
+            </label>
+            <div style="display:flex;align-items:flex-end"><button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%">이 패턴으로 이미지 추가</button></div>
+          </div>
+        </details>
         <div class="img-files" id="files"></div>
         <div class="btns"><button type="button" class="btn btn-ghost btn-sm" id="clear-files" hidden>모두 지우기</button></div>
       </div>
@@ -43,7 +62,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
     <div class="card panel img-side">
       <div class="img-pvhead">
-        <span class="hint" id="pv-name">미리보기 · 이미지를 추가하면 첫 이미지로 보여줘요</span>
+        <div class="img-pvl"><span class="hint" id="pv-name">미리보기 · 이미지를 추가하면 첫 이미지로 보여줘요</span><button type="button" class="img-dl" id="pv-dl" hidden>다운로드</button></div>
         <div class="img-pvnav" id="pv-nav" hidden><button type="button" id="pv-prev" aria-label="이전">◀</button><span id="pv-count"></span><button type="button" id="pv-next" aria-label="다음">▶</button></div>
       </div>
       <div class="img-pvbox"><canvas id="pv" width="760" height="507" aria-label="미리보기"></canvas></div>
@@ -69,7 +88,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
   .img-side { position: sticky; top: 84px; }
   .img-stack > .card { margin-bottom: 20px; }
-  .img-h { margin: 0 0 4px; font-size: 1.15rem; color: var(--navy); }
+  .img-h { margin: 0 0 6px; padding-left: 12px; border-left: 4px solid var(--blue); font-size: 1.3rem; font-weight: 800; color: var(--navy); }
   .img-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; border: 2px dashed #b9ccf5; border-radius: 16px; background: #f7faff; color: var(--blue); cursor: pointer; text-align: center; }
   .img-drop.over { background: var(--soft); border-color: var(--blue); }
   .img-drop span { color: var(--muted); font-size: 0.85rem; }
@@ -85,7 +104,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-file button { border: 0; background: none; color: #8a94a8; cursor: pointer; font-size: 1rem; }
   .img-sec { padding: 20px 0; border-top: 1px solid var(--line); }
   .img-sec:first-child { border-top: 0; padding-top: 12px; }
-  .img-sec h3 { margin: 0 0 10px; color: var(--navy); font-size: 1.05rem; }
+  .img-sec h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--gb); color: var(--gc); font-size: 1.15rem; font-weight: 800; }
+  .img-sec h3 .tag { width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--gc); color: #fff; display: grid; place-items: center; font-size: 0.95rem; }
   .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 12px; }
   .img-rng, .img-clr, .img-sel { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); font-weight: 600; }
   .img-rng b { color: var(--navy); }
@@ -104,6 +124,19 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-pvbox canvas { display: block; width: 100%; height: auto; }
   .img-pvnav { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
   .img-pvnav button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; }
+  .img-pat { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 0 14px 14px; }
+  .img-pat summary { cursor: pointer; padding: 12px 0; font-weight: 700; color: var(--navy); font-size: 0.92rem; }
+  .img-patgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px; max-height: 190px; overflow: auto; padding: 3px; }
+  .img-patgrid .pat { aspect-ratio: 1; padding: 0; border: 2px solid #fff; border-radius: 10px; background-size: cover; background-position: center; cursor: pointer; box-shadow: 0 0 0 1px var(--line); }
+  .img-patgrid .pat.on { box-shadow: 0 0 0 2px var(--blue); }
+  .img-file.on { background: #f3f7ff; }
+  .img-file .n { cursor: pointer; }
+  .img-file .n:hover { color: var(--blue); text-decoration: underline; }
+  .img-file a.dl { padding: 3px 10px; border-radius: 8px; background: #e0f6ec; color: var(--green); white-space: nowrap; }
+  .img-pvl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .img-pvl .hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .img-dl { flex: none; border: 1px solid #cfe0ff; background: var(--soft); color: var(--blue); font: inherit; font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .img-dl:hover { background: #dbe7ff; }
   @media (max-width: 900px) { .img-layout { grid-template-columns: 1fr; } .img-side { position: static; order: -1; } }
 </style>
 
@@ -381,6 +414,102 @@ import ToolPage from '../../layouts/ToolPage.astro';
   }
   // ==ZIP-END==
 
+  // ==PAT-START==
+  function rngSeed(seed: number) {
+    return () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  type PC = { u: number; fg: string; bg: string; w: number; h: number; r: () => number };
+  const tile = (tw: number, th: number, inner: string, extra = '') =>
+    `<defs><pattern id="p" width="${tw}" height="${th}" patternUnits="userSpaceOnUse"${extra}>${inner}</pattern></defs><rect width="100%" height="100%" fill="url(#p)"/>`;
+  const scatter = (c: PC, perUnit: number, make: (c: PC) => string) => {
+    const n = Math.round(((c.w * c.h) / (c.u * c.u)) * perUnit);
+    let o = '';
+    for (let i = 0; i < n; i++) o += make(c);
+    return o;
+  };
+
+  const PATTERNS: [string, string, (c: PC) => string][] = [
+    ['dots', '작은 점', ({ u, fg }) => tile(u, u, `<circle cx="${u / 2}" cy="${u / 2}" r="${u * 0.14}" fill="${fg}"/>`)],
+    ['bigdots', '큰 점', ({ u, fg }) => tile(u * 1.6, u * 1.6, `<circle cx="${u * 0.8}" cy="${u * 0.8}" r="${u * 0.4}" fill="${fg}"/>`)],
+    ['polka', '물방울', ({ u, fg }) => tile(u * 1.5, u * 1.5, `<circle cx="${u * 0.375}" cy="${u * 0.375}" r="${u * 0.2}" fill="${fg}"/><circle cx="${u * 1.125}" cy="${u * 1.125}" r="${u * 0.2}" fill="${fg}"/>`)],
+    ['hstripe', '가로줄', ({ u, fg }) => tile(u, u, `<rect width="${u}" height="${u * 0.45}" fill="${fg}"/>`)],
+    ['vstripe', '세로줄', ({ u, fg }) => tile(u, u, `<rect width="${u * 0.45}" height="${u}" fill="${fg}"/>`)],
+    ['diag', '대각선', ({ u, fg }) => tile(u, u, `<rect width="${u * 0.45}" height="${u}" fill="${fg}"/>`, ' patternTransform="rotate(45)"')],
+    ['thin', '가는 대각선', ({ u, fg }) => tile(u * 0.5, u * 0.5, `<rect width="${u * 0.1}" height="${u * 0.5}" fill="${fg}"/>`, ' patternTransform="rotate(45)"')],
+    ['grid', '격자', ({ u, fg }) => tile(u, u, `<path d="M${u} 0H0V${u}" fill="none" stroke="${fg}" stroke-width="${u * 0.06}"/>`)],
+    ['graph', '모눈종이', ({ u, fg }) => tile(u * 4, u * 4, `<path d="M${u} 0V${u * 4}M${u * 2} 0V${u * 4}M${u * 3} 0V${u * 4}M0 ${u}H${u * 4}M0 ${u * 2}H${u * 4}M0 ${u * 3}H${u * 4}" fill="none" stroke="${fg}" stroke-width="${u * 0.03}" opacity=".5"/><path d="M0 0V${u * 4}M0 0H${u * 4}" fill="none" stroke="${fg}" stroke-width="${u * 0.09}"/>`)],
+    ['checker', '체크무늬', ({ u, fg }) => tile(u * 2, u * 2, `<rect width="${u}" height="${u}" fill="${fg}"/><rect x="${u}" y="${u}" width="${u}" height="${u}" fill="${fg}"/>`)],
+    ['plaid', '격자 천', ({ u, fg }) => tile(u * 4, u * 4, `<rect y="${u * 0.5}" width="${u * 4}" height="${u * 1.2}" fill="${fg}" opacity=".35"/><rect x="${u * 0.5}" width="${u * 1.2}" height="${u * 4}" fill="${fg}" opacity=".35"/><rect y="${u * 2.4}" width="${u * 4}" height="${u * 0.12}" fill="${fg}"/><rect x="${u * 2.4}" width="${u * 0.12}" height="${u * 4}" fill="${fg}"/>`)],
+    ['gingham', '깅엄 체크', ({ u, fg }) => tile(u * 2, u * 2, `<rect width="${u * 2}" height="${u}" fill="${fg}" opacity=".35"/><rect width="${u}" height="${u * 2}" fill="${fg}" opacity=".35"/>`)],
+    ['chevron', '쉐브론', ({ u, fg }) => tile(u * 2, u, `<path d="M0 ${u * 0.5}L${u} 0L${u * 2} ${u * 0.5}V${u * 0.9}L${u} ${u * 0.4}L0 ${u * 0.9}Z" fill="${fg}"/>`)],
+    ['zigzag', '지그재그', ({ u, fg }) => tile(u, u * 0.8, `<path d="M0 ${u * 0.6}L${u * 0.5} ${u * 0.15}L${u} ${u * 0.6}" fill="none" stroke="${fg}" stroke-width="${u * 0.1}"/>`)],
+    ['wave', '물결', ({ u, fg }) => tile(u * 2, u * 0.8, `<path d="M0 ${u * 0.4}Q${u * 0.5} 0 ${u} ${u * 0.4}T${u * 2} ${u * 0.4}" fill="none" stroke="${fg}" stroke-width="${u * 0.1}"/>`)],
+    ['scale', '물고기 비늘', ({ u, fg }) => tile(u, u * 0.5, `<g fill="none" stroke="${fg}" stroke-width="${u * 0.06}"><circle cx="0" cy="0" r="${u * 0.5}"/><circle cx="${u}" cy="0" r="${u * 0.5}"/><circle cx="${u * 0.5}" cy="${u * 0.5}" r="${u * 0.5}"/><circle cx="0" cy="${u * 0.5}" r="${u * 0.5}"/><circle cx="${u}" cy="${u * 0.5}" r="${u * 0.5}"/></g>`)],
+    ['tri', '삼각형', ({ u, fg }) => tile(u, u, `<polygon points="${u / 2},${u * 0.15} ${u * 0.85},${u * 0.85} ${u * 0.15},${u * 0.85}" fill="${fg}"/>`)],
+    ['hex', '벌집', ({ u, fg }) => {
+      const k = (u * 0.9) / 56;
+      return tile(56 * k, 100 * k, `<g transform="scale(${k})" fill="none" stroke="${fg}" stroke-width="2"><path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100"/><path d="M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34"/></g>`);
+    }],
+    ['diamond', '마름모', ({ u, fg }) => tile(u * 2, u * 2, `<polygon points="${u},${u * 0.15} ${u * 1.85},${u} ${u},${u * 1.85} ${u * 0.15},${u}" fill="${fg}"/>`)],
+    ['plus', '플러스', ({ u, fg }) => tile(u, u, `<path d="M${u / 2} ${u * 0.25}V${u * 0.75}M${u * 0.25} ${u / 2}H${u * 0.75}" fill="none" stroke="${fg}" stroke-width="${u * 0.1}"/>`)],
+    ['star', '별', ({ u, fg }) => {
+      const c = u * 0.7, R = u * 0.35, r = u * 0.15;
+      const pts = [...Array(10)].map((_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5; const rr = i % 2 ? r : R; return `${c + rr * Math.cos(a)},${c + rr * Math.sin(a)}`; }).join(' ');
+      return tile(u * 1.4, u * 1.4, `<polygon points="${pts}" fill="${fg}"/>`);
+    }],
+    ['ring', '동그라미', ({ u, fg }) => tile(u * 1.5, u * 1.5, `<g fill="none" stroke="${fg}" stroke-width="${u * 0.08}"><circle cx="${u * 0.75}" cy="${u * 0.75}" r="${u * 0.5}"/><circle cx="${u * 0.75}" cy="${u * 0.75}" r="${u * 0.25}"/></g>`)],
+    ['arc', '무지개 호', ({ u, fg }) => tile(u * 1.4, u * 0.7, `<g fill="none" stroke="${fg}" stroke-width="${u * 0.08}"><path d="M0 ${u * 0.7}A${u * 0.7} ${u * 0.7} 0 0 1 ${u * 1.4} ${u * 0.7}"/><path d="M${u * 0.2} ${u * 0.7}A${u * 0.5} ${u * 0.5} 0 0 1 ${u * 1.2} ${u * 0.7}"/></g>`)],
+    ['brick', '벽돌', ({ u, fg }) => tile(u * 2, u, `<path d="M0 0H${u * 2}M0 ${u / 2}H${u * 2}M0 0V${u / 2}M${u} 0V${u / 2}M${u / 2} ${u / 2}V${u}M${u * 1.5} ${u / 2}V${u}" fill="none" stroke="${fg}" stroke-width="${u * 0.06}"/>`)],
+    ['camo', '위장 무늬', (c) => {
+      // 서로 다른 색 톤의 얼룩을 듬성듬성 겹쳐서, 바탕색이 군데군데 보이게 합니다.
+      const layers: [string, number][] = [[c.fg, 0.45], ['#000000', 0.35], [c.fg, 0.9]];
+      return layers.map(([fill, op]) => scatter(c, 0.45, ({ u, w, h, r }) => {
+        const x = (r() * w).toFixed(1), y = (r() * h).toFixed(1);
+        return `<ellipse cx="${x}" cy="${y}" rx="${(u * (0.35 + r() * 0.9)).toFixed(1)}" ry="${(u * (0.2 + r() * 0.5)).toFixed(1)}" transform="rotate(${(r() * 180).toFixed(0)} ${x} ${y})" fill="${fill}" opacity="${op}"/>`;
+      })).join('');
+    }],
+    ['speckle', '테라조', (c) => scatter(c, 5, ({ u, w, h, r }) =>
+      `<circle cx="${(r() * w).toFixed(1)}" cy="${(r() * h).toFixed(1)}" r="${(u * (0.04 + r() * 0.1)).toFixed(1)}" fill="${c.fg}" opacity="${(0.4 + r() * 0.6).toFixed(2)}"/>`)],
+    ['confetti', '색종이', (c) => scatter(c, 2.5, ({ u, w, h, r }) => {
+      const x = (r() * w).toFixed(1), y = (r() * h).toFixed(1);
+      return `<rect x="${x}" y="${y}" width="${(u * (0.12 + r() * 0.2)).toFixed(1)}" height="${(u * (0.05 + r() * 0.07)).toFixed(1)}" transform="rotate(${(r() * 180).toFixed(0)} ${x} ${y})" fill="${c.fg}" opacity="${(0.4 + r() * 0.6).toFixed(2)}"/>`;
+    })],
+    ['grad1', '대각 그라데이션', ({ fg, bg }) => `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${fg}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>`],
+    ['grad2', '원형 그라데이션', ({ fg, bg }) => `<defs><radialGradient id="g" cx=".5" cy=".5" r=".75"><stop offset="0" stop-color="${fg}"/><stop offset="1" stop-color="${bg}"/></radialGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>`],
+    ['grad3', '위아래 그라데이션', ({ fg, bg }) => `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${fg}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>`],
+    ['sun', '햇살', ({ fg, w, h }) => {
+      const cx = w / 2, cy = h / 2, R = Math.hypot(w, h), N = 24;
+      let o = '';
+      for (let i = 0; i < N; i += 2) {
+        const a0 = (i * 2 * Math.PI) / N, a1 = ((i + 1) * 2 * Math.PI) / N;
+        o += `<polygon points="${cx},${cy} ${cx + R * Math.cos(a0)},${cy + R * Math.sin(a0)} ${cx + R * Math.cos(a1)},${cy + R * Math.sin(a1)}" fill="${fg}" opacity=".4"/>`;
+      }
+      return o;
+    }],
+    ['tiles', '타일', ({ u, fg }) => tile(u * 1.2, u * 1.2, `<rect x="${u * 0.1}" y="${u * 0.1}" width="${u}" height="${u}" rx="${u * 0.12}" fill="${fg}" opacity=".55"/>`)],
+    ['pin', '핀스트라이프', ({ u, fg }) => tile(u * 0.8, u, `<rect width="${u * 0.04}" height="${u}" fill="${fg}"/>`)],
+    ['dash', '점선', ({ u, fg }) => tile(u, u * 0.6, `<line x1="0" y1="${u * 0.3}" x2="${u}" y2="${u * 0.3}" stroke="${fg}" stroke-width="${u * 0.08}" stroke-dasharray="${u * 0.25} ${u * 0.2}"/>`)],
+    ['lattice', '사선 격자', ({ u, fg }) => tile(u, u, `<path d="M0 0L${u} ${u}M${u} 0L0 ${u}" fill="none" stroke="${fg}" stroke-width="${u * 0.06}"/>`)],
+    ['conc', '동심원', ({ u, fg, w, h }) => {
+      const n = Math.ceil(Math.hypot(w, h) / 2 / (u * 0.6));
+      let o = '';
+      for (let i = 1; i <= n; i++) o += `<circle cx="${w / 2}" cy="${h / 2}" r="${i * u * 0.6}" fill="none" stroke="${fg}" stroke-width="${u * 0.06}" opacity=".7"/>`;
+      return o;
+    }],
+  ];
+
+  function makeSvg(id: string, bg: string, fg: string, w: number, h: number, u = (56 * Math.max(w, h)) / 1000) {
+    const p = PATTERNS.find((x) => x[0] === id) || PATTERNS[0];
+    const body = p[2]({ u, fg, bg, w, h, r: rngSeed(PATTERNS.indexOf(p) * 977 + 13) });
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="${bg}"/>${body}</svg>`;
+  }
+  // ==PAT-END==
+
   // ---------- 글꼴 (Google Fonts) ----------
   const gf = document.createElement('link');
   gf.rel = 'stylesheet';
@@ -415,9 +544,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const FONT_OPTS: [string, string][] = FONTS.map((f) => [f.id, f.name]);
   const WEIGHTS: [string, string][] = [['400', '가늘게'], ['500', '보통'], ['700', '굵게'], ['900', '아주 굵게']];
 
-  const TITLES = ['상단 (작은 글씨)', '중단 (큰 글씨)', '하단 (작은 글씨)'];
-  $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec">
-    <h3>${TITLES[i]}</h3>
+  const TITLES = ['상단 · 작은 글씨', '중단 · 큰 글씨', '하단 · 작은 글씨'];
+  const TAGS = ['상', '중', '하'];
+  const SEC_CLS = ['g-net', 'g-blog', 'g-dev'];
+  $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec ${SEC_CLS[i]}">
+    <h3><span class="tag">${TAGS[i]}</span>${TITLES[i]}</h3>
     <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
     <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색</p>
     <div class="img-grid">
@@ -514,20 +645,61 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let files: File[] = [];
   let rows: HTMLElement[] = [];
   let running = false;
+  let curIdx = -1;
+  let pIdx = 0;
+  type Result = { name: string; blob: Blob; url: string };
+  const resMap = new Map<File, Result>();
+  const failSet = new Set<File>();
+  const PART_BYTES = 200 * 1024 * 1024;
   const kb = (n: number) => (n >= 1048576 ? (n / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB');
 
-  function renderFiles() {
-    $('files').innerHTML = files
-      .map((f, i) => `<div class="img-file"><span class="n" title="${esc(f.name)}">${esc(f.name)}</span><span class="sz">${kb(f.size)}</span><span class="st">대기</span><a class="dl" hidden>저장</a><button type="button" data-rm="${i}" aria-label="삭제">✕</button></div>`)
+  function rowHtml(f: File, i: number) {
+    const r = resMap.get(f);
+    const state = r
+      ? `<span class="st ok">${kb(r.blob.size)}</span><a class="dl" href="${r.url}" download="${esc(r.name)}">완료 저장</a>`
+      : failSet.has(f) ? '<span class="st err">실패</span>'
+      : running && curIdx === i ? '<span class="st">변환 중…</span>'
+      : '<span class="st">대기</span>';
+    return `<div class="img-file${i === pIdx ? ' on' : ''}" data-i="${i}"><span class="n" title="${esc(f.name)} · 눌러서 미리보기">${esc(f.name)}</span><span class="sz">${kb(f.size)}</span>${state}<button type="button" data-rm="${i}" aria-label="삭제">✕</button></div>`;
+  }
+  function updateRow(i: number) {
+    const holder = document.createElement('div');
+    holder.innerHTML = rowHtml(files[i], i);
+    const el = holder.firstElementChild as HTMLElement;
+    rows[i].replaceWith(el);
+    rows[i] = el;
+  }
+
+  let zipParts: { name: string; blob: Blob }[][] = [];
+  function buildZips() {
+    zipParts = [];
+    let cur: { name: string; blob: Blob }[] = [];
+    let bytes = 0;
+    for (const f of files) {
+      const r = resMap.get(f);
+      if (!r) continue;
+      if (cur.length && bytes + r.blob.size > PART_BYTES) { zipParts.push(cur); cur = []; bytes = 0; }
+      cur.push({ name: r.name, blob: r.blob });
+      bytes += r.blob.size;
+    }
+    if (cur.length) zipParts.push(cur);
+    $('zips').innerHTML = zipParts
+      .map((p, n) => `<button type="button" class="btn btn-ghost btn-sm" data-zip="${n}">${zipParts.length > 1 ? `ZIP ${n + 1}` : 'ZIP으로 받기'} (${p.length}장 · ${kb(p.reduce((a, r) => a + r.blob.size, 0))})</button>`)
       .join('');
+  }
+
+  function renderFiles() {
+    $('files').innerHTML = files.map(rowHtml).join('');
     rows = [...($('files').children as HTMLCollectionOf<HTMLElement>)];
     ($('clear-files') as HTMLElement).hidden = !files.length;
     const run = $<HTMLButtonElement>('run');
     run.disabled = !files.length || running;
     run.textContent = files.length ? `변환 시작 (${files.length}장)` : '변환 시작';
-    $('rstatus').textContent = files.length ? '설정을 맞추고 변환 시작을 누르세요.' : '이미지를 추가하면 변환할 수 있어요.';
-    $('zips').innerHTML = '';
-    $('rprog').style.width = '0';
+    if (!resMap.size) {
+      $('rstatus').textContent = files.length ? '설정을 맞추고 변환 시작을 누르세요.' : '이미지를 추가하면 변환할 수 있어요.';
+      $('rprog').style.width = '0';
+    }
+    buildZips();
   }
 
   function addFiles(list: FileList | File[] | null) {
@@ -543,8 +715,16 @@ import ToolPage from '../../layouts/ToolPage.astro';
       added++;
     }
     if (!added) return;
+    const wasEmpty = files.length === added;
     renderFiles();
-    loadPreview();
+    if (wasEmpty) { pIdx = 0; loadPreview(); }
+    else updateNav();
+  }
+  function dropResult(f: File) {
+    const r = resMap.get(f);
+    if (r) URL.revokeObjectURL(r.url);
+    resMap.delete(f);
+    failSet.delete(f);
   }
 
   $('file').addEventListener('change', (e) => { addFiles((e.target as HTMLInputElement).files); (e.target as HTMLInputElement).value = ''; });
@@ -554,37 +734,78 @@ import ToolPage from '../../layouts/ToolPage.astro';
   drop.addEventListener('drop', (e) => addFiles((e as DragEvent).dataTransfer?.files || null));
   document.addEventListener('paste', (e) => addFiles(e.clipboardData?.files || null));
   $('files').addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-rm]');
+    const t = e.target as HTMLElement;
+    const name = t.closest('.n');
+    if (name) { pIdx = Number((name.closest('.img-file') as HTMLElement).dataset.i); loadPreview(); return; }
+    const b = t.closest<HTMLButtonElement>('button[data-rm]');
     if (!b || running) return;
-    files.splice(Number(b.dataset.rm), 1);
+    const i = Number(b.dataset.rm);
+    dropResult(files[i]);
+    files.splice(i, 1);
+    if (i < pIdx) pIdx--;
     renderFiles();
     loadPreview();
   });
-  $('clear-files').addEventListener('click', () => { if (running) return; files = []; renderFiles(); loadPreview(); });
+  $('clear-files').addEventListener('click', () => {
+    if (running) return;
+    files.forEach(dropResult);
+    files = [];
+    pIdx = 0;
+    renderFiles();
+    loadPreview();
+  });
 
   // ---------- 미리보기 ----------
   let prev: (Img & { close: () => void }) | null = null;
-  let pIdx = 0;
   let raf = 0;
   let token = 0;
+  let loadToken = 0;
 
   function updateNav() {
     ($('pv-nav') as HTMLElement).hidden = files.length < 2;
     $('pv-count').textContent = `${pIdx + 1} / ${files.length}`;
-    $('pv-name').textContent = files.length ? `미리보기 · ${files[pIdx].name}` : '미리보기 · 이미지를 추가하면 첫 이미지로 보여줘요';
+    $('pv-name').textContent = files.length ? `미리보기 · ${files[pIdx].name}` : '미리보기 · 배경 패턴 (이미지를 추가하면 그 이미지로 보여줘요)';
+    ($('pv-dl') as HTMLElement).hidden = !(files.length && resMap.has(files[pIdx]));
+    rows.forEach((r, i) => r.classList.toggle('on', i === pIdx));
+  }
+  async function svgToImg(svg: string, w: number, h: number) {
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return { src: img as CanvasImageSource, w, h, close: () => URL.revokeObjectURL(url) };
   }
   async function loadPreview() {
+    const my = ++loadToken;
+    let next: (Img & { close: () => void }) | null = null;
+    try {
+      if (files.length) {
+        pIdx = Math.max(0, Math.min(pIdx, files.length - 1));
+        next = await decode(files[pIdx]);
+      } else {
+        pIdx = 0;
+        const [w, h] = patState.size.split('x').map(Number);
+        next = await svgToImg(makeSvg(patState.id, patState.bg, patState.fg, w, h), w, h);
+      }
+    } catch { next = null; }
+    if (my !== loadToken) { next?.close(); return; }
     if (prev) prev.close();
-    prev = null;
-    if (files.length) {
-      pIdx = Math.min(pIdx, files.length - 1);
-      try { prev = await decode(files[pIdx]); } catch { prev = null; }
-    } else pIdx = 0;
+    prev = next;
     updateNav();
     schedule();
   }
   $('pv-prev').addEventListener('click', () => { pIdx = (pIdx - 1 + files.length) % files.length; loadPreview(); });
   $('pv-next').addEventListener('click', () => { pIdx = (pIdx + 1) % files.length; loadPreview(); });
+  $('pv-dl').addEventListener('click', () => {
+    const r = files[pIdx] && resMap.get(files[pIdx]);
+    if (!r) return;
+    const a = document.createElement('a');
+    a.href = r.url;
+    a.download = r.name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+  });
 
   async function ensureFonts() {
     const jobs: Promise<unknown>[] = [];
@@ -597,7 +818,6 @@ import ToolPage from '../../layouts/ToolPage.astro';
     if (wm.text.trim()) want(wm.font, wm.weight, wm.text);
     await Promise.allSettled(jobs);
   }
-
   function schedule() {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(drawPreview);
@@ -615,6 +835,30 @@ import ToolPage from '../../layouts/ToolPage.astro';
     compose(c.getContext('2d')!, prev ? prev.src : null, c.width, c.height, null, secs, wm);
   }
   document.fonts.ready.then(schedule);
+
+  // ---------- 배경 패턴 ----------
+  const patState = { id: PATTERNS[0][0], bg: '#243b6b', fg: '#3d5a9c', size: '1000x1000' };
+  function renderPats() {
+    $('pat-grid').innerHTML = PATTERNS.map(([id, name]) => {
+      const svg = makeSvg(id, patState.bg, patState.fg, 150, 150, 30);
+      return `<button type="button" class="pat${id === patState.id ? ' on' : ''}" data-pat="${id}" title="${name}" aria-label="${name}" style="background-image:url('data:image/svg+xml,${encodeURIComponent(svg)}')"></button>`;
+    }).join('');
+  }
+  const patChanged = () => { renderPats(); if (!files.length) loadPreview(); };
+  $('pat-grid').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-pat]');
+    if (!b) return;
+    patState.id = b.dataset.pat!;
+    patChanged();
+  });
+  $('pat-bg').addEventListener('input', (e) => { patState.bg = (e.target as HTMLInputElement).value; patChanged(); });
+  $('pat-fg').addEventListener('input', (e) => { patState.fg = (e.target as HTMLInputElement).value; patChanged(); });
+  $('pat-size').addEventListener('change', (e) => { patState.size = (e.target as HTMLSelectElement).value; if (!files.length) loadPreview(); });
+  $('pat-add').addEventListener('click', () => {
+    const [w, h] = patState.size.split('x').map(Number);
+    const svg = makeSvg(patState.id, patState.bg, patState.fg, w, h);
+    addFiles([new File([svg], `pattern-${patState.id}-${w}x${h}.svg`, { type: 'image/svg+xml' })]);
+  });
 
   // ---------- 변환 ----------
   const fmtEl = $<HTMLSelectElement>('fmt');
@@ -649,87 +893,58 @@ import ToolPage from '../../layouts/ToolPage.astro';
     return blob;
   }
 
-  type Result = { name: string; blob: Blob };
-  let results: (Result | null)[] = [];
-  const PART_BYTES = 200 * 1024 * 1024;
-
   async function run() {
     if (running || !files.length) return;
     running = true;
-    const btn = $<HTMLButtonElement>('run');
-    btn.disabled = true;
-    $('go-note')?.remove();
-    $('zips').innerHTML = '';
-    results = [];
+    files.forEach(dropResult);
+    renderFiles();
     await ensureFonts();
     const suffix = $<HTMLInputElement>('suffix').value.trim();
-    const set = (i: number, text: string, cls = '') => {
-      const st = rows[i].querySelector('.st') as HTMLElement;
-      st.textContent = text;
-      st.className = 'st ' + cls;
-    };
     let ok = 0, fail = 0, srcSum = 0, outSum = 0, warn = '';
     const t0 = Date.now();
     for (let i = 0; i < files.length; i++) {
-      set(i, '변환 중…');
+      const f = files[i];
+      curIdx = i;
+      updateRow(i);
       $('rstatus').textContent = `${i + 1} / ${files.length}장 변환 중 · 소요시간 ${Math.round((Date.now() - t0) / 1000)}초`;
       try {
-        const blob = await convert(files[i]);
+        const blob = await convert(f);
         const ext = EXT[blob.type] || fmtEl.value;
         if (blob.type !== MIME[fmtEl.value]) warn = '이 브라우저는 선택한 형식으로 저장하지 못해 PNG로 저장됐어요.';
-        const name = files[i].name.replace(/\.[^.]+$/, '') + suffix + '.' + ext;
-        results[i] = { name, blob };
-        srcSum += files[i].size;
+        const name = f.name.replace(/\.[^.]+$/, '') + suffix + '.' + ext;
+        resMap.set(f, { name, blob, url: URL.createObjectURL(blob) });
+        srcSum += f.size;
         outSum += blob.size;
         ok++;
-        set(i, `완료 · ${kb(blob.size)}`, 'ok');
-        const a = rows[i].querySelector('a.dl') as HTMLAnchorElement;
-        a.href = URL.createObjectURL(blob);
-        a.download = name;
-        a.hidden = false;
       } catch {
-        results[i] = null;
+        failSet.add(f);
         fail++;
-        set(i, '실패', 'err');
       }
+      curIdx = -1;
+      updateRow(i);
+      if (i === pIdx) updateNav();
       $('rprog').style.width = ((i + 1) / files.length) * 100 + '%';
       await new Promise((r) => setTimeout(r, 0)); // 화면이 멈추지 않게 한 템포 쉽니다
     }
-
     const sec = Math.round((Date.now() - t0) / 1000);
     $('rstatus').textContent = `완료 · ${ok}장 변환${fail ? `, ${fail}장 실패` : ''} · ${kb(srcSum)} → ${kb(outSum)} · 소요시간 ${sec}초${warn ? ' · ' + warn : ''}`;
-
-    // ZIP: 200MB 정도마다 나눕니다.
-    const parts: Result[][] = [];
-    let cur: Result[] = [];
-    let bytes = 0;
-    for (const r of results) {
-      if (!r) continue;
-      if (cur.length && bytes + r.blob.size > PART_BYTES) { parts.push(cur); cur = []; bytes = 0; }
-      cur.push(r);
-      bytes += r.blob.size;
-    }
-    if (cur.length) parts.push(cur);
-    $('zips').innerHTML = parts
-      .map((p, n) => `<button type="button" class="btn btn-ghost btn-sm" data-zip="${n}">${parts.length > 1 ? `ZIP ${n + 1}` : 'ZIP으로 받기'} (${p.length}장 · ${kb(p.reduce((a, r) => a + r.blob.size, 0))})</button>`)
-      .join('');
-    ($('zips') as any)._parts = parts;
     running = false;
-    btn.disabled = false;
+    ($('run') as HTMLButtonElement).disabled = !files.length;
+    buildZips();
+    updateNav();
   }
   $('run').addEventListener('click', run);
 
   $('zips').addEventListener('click', async (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-zip]');
     if (!b) return;
-    const parts = ($('zips') as any)._parts as Result[][];
     const n = Number(b.dataset.zip);
     const old = b.textContent;
     b.disabled = true;
     b.textContent = 'ZIP 만드는 중…';
     // 같은 이름이 있으면 (2), (3)을 붙입니다.
     const used = new Map<string, number>();
-    const items = parts[n].map((r) => {
+    const items = zipParts[n].map((r) => {
       const c = (used.get(r.name) || 0) + 1;
       used.set(r.name, c);
       return { name: c > 1 ? r.name.replace(/(\.[^.]+)$/, `(${c})$1`) : r.name, blob: r.blob };
@@ -737,7 +952,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const zip = await makeZip(items);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(zip);
-    a.download = parts.length > 1 ? `images_${n + 1}.zip` : 'images.zip';
+    a.download = zipParts.length > 1 ? `images_${n + 1}.zip` : 'images.zip';
     document.body.append(a);
     a.click();
     a.remove();
@@ -746,6 +961,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     b.textContent = old;
   });
 
+  renderPats();
   renderFiles();
-  schedule();
+  loadPreview();
 </script>
