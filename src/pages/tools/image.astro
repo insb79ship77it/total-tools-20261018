@@ -19,26 +19,52 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <button type="button" class="btn btn-ghost btn-sm" id="pat-none">선택 해제</button>
             <span class="hint" id="pat-count" style="margin:0;align-self:center"></span>
           </div>
-          <div class="img-grid">
-            <label class="img-sel"><span>배경 방식</span>
-              <select class="field" id="pat-bgmode"><option value="solid">단색</option><option value="grad">그라데이션</option></select>
-            </label>
-            <label class="img-clr"><span id="pat-bg-l">배경색</span><input type="color" id="pat-bg" value="#243b6b" /></label>
-            <label class="img-clr" id="pat-bg2-w" hidden><span>배경색 2</span><input type="color" id="pat-bg2" value="#0b1530" /></label>
-            <label class="img-rng" id="pat-angle-w" hidden><span>그라데이션 각도 <b>135</b>°</span><input type="range" id="pat-angle" min="0" max="360" step="5" value="135" /></label>
-            <label class="img-clr"><span>패턴색</span><input type="color" id="pat-fg" value="#3d5a9c" /></label>
-            <label class="img-rng"><span>무늬 크기 <b>1</b>배</span><input type="range" id="pat-scale" min="0.4" max="3" step="0.1" value="1" /></label>
-            <label class="img-sel"><span>이미지 크기</span>
-              <select class="field" id="pat-size">
-                <option value="1000x1000">정사각 1000×1000</option>
-                <option value="600x600">정사각 600×600</option>
-                <option value="1200x630">가로 1200×630</option>
-                <option value="700x467">가로 700×467</option>
-                <option value="1920x1080">16:9 1920×1080</option>
-                <option value="1080x1350">세로 1080×1350</option>
-              </select>
-            </label>
-            <div style="display:flex;align-items:flex-end"><button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%">선택한 패턴으로 이미지 추가</button></div>
+
+          <div class="img-sub">
+            <h4>추천 색상</h4>
+            <p class="hint" style="margin:0 0 8px">눌러서 배경색과 패턴색에 한 번에 적용해요.</p>
+            <div class="img-pal" id="pal-grid"></div>
+          </div>
+
+          <div class="img-sub">
+            <h4>배경 방식</h4>
+            <div class="img-grid">
+              <label class="img-sel"><span>방식</span>
+                <select class="field" id="pat-bgmode"><option value="solid">단색</option><option value="grad">그라데이션</option></select>
+              </label>
+              <label class="img-clr"><span id="pat-bg-l">배경색</span><input type="color" id="pat-bg" value="#243b6b" /></label>
+              <label class="img-clr" id="pat-bg2-w" hidden><span>배경색 2</span><input type="color" id="pat-bg2" value="#0b1530" /></label>
+              <label class="img-rng" id="pat-angle-w" hidden><span>그라데이션 각도 <b>135</b>°</span><input type="range" id="pat-angle" min="0" max="360" step="5" value="135" /></label>
+            </div>
+          </div>
+
+          <div class="img-sub">
+            <h4>패턴 방식</h4>
+            <div class="img-grid">
+              <label class="img-clr"><span>패턴색</span><input type="color" id="pat-fg" value="#3d5a9c" /></label>
+              <label class="img-rng"><span>무늬 크기 <b>1</b>배</span><input type="range" id="pat-scale" min="0.4" max="3" step="0.1" value="1" /></label>
+            </div>
+          </div>
+
+          <div class="img-sub">
+            <h4>사이즈 설정</h4>
+            <div class="img-grid">
+              <label class="img-sel" style="grid-column:1/-1"><span>이미지 크기</span>
+                <select class="field" id="pat-size">
+                  <option value="1000x1000">정사각 1000×1000</option>
+                  <option value="600x600">정사각 600×600</option>
+                  <option value="1200x630">가로 1200×630</option>
+                  <option value="700x467">가로 700×467</option>
+                  <option value="1920x1080">16:9 1920×1080</option>
+                  <option value="1080x1350">세로 1080×1350</option>
+                  <option value="custom">직접 입력</option>
+                </select>
+              </label>
+              <label class="img-sel" id="pat-w-w" hidden><span>가로 (px)</span><input class="field" type="number" id="pat-w" min="50" max="4000" value="1000" /></label>
+              <label class="img-sel" id="pat-h-w" hidden><span>세로 (px)</span><input class="field" type="number" id="pat-h" min="50" max="4000" value="1000" /></label>
+            </div>
+            <p class="hint" id="pat-custom-hint" hidden style="margin:6px 0 0">50~4000px 사이로 입력하세요. 범위를 넘으면 자동으로 맞춰져요.</p>
+            <button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%;margin-top:12px">이 패턴으로 이미지 추가</button>
           </div>
         </details>
         <div class="img-files" id="files"></div>
@@ -117,7 +143,6 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-sec { padding: 20px 0; border-top: 1px solid var(--line); }
   .img-sec:first-child { border-top: 0; padding-top: 12px; }
   .img-sec h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--gb); color: var(--gc); font-size: 1.15rem; font-weight: 800; }
-  .img-sec h3 .tag { width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--gc); color: #fff; display: grid; place-items: center; font-size: 0.95rem; }
   .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 12px; }
   .img-rng, .img-clr, .img-sel { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); font-weight: 600; }
   .img-rng b { color: var(--navy); }
@@ -142,6 +167,14 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-patgrid .pat { position: relative; aspect-ratio: 1; padding: 0; border: 2px solid #fff; border-radius: 10px; background-size: cover; background-position: center; cursor: pointer; box-shadow: 0 0 0 1px var(--line); }
   .img-patgrid .pat.on { box-shadow: 0 0 0 3px var(--blue); }
   .img-patgrid .pat.on::after { content: '✓'; position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 11px; line-height: 18px; text-align: center; font-weight: 800; }
+  .img-sub { margin-top: 12px; padding: 12px 14px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f7f9fd; }
+  .img-sub h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 0.88rem; font-weight: 800; color: var(--navy); }
+  .img-sub h4::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: var(--blue); }
+  .img-sub .img-grid { margin-top: 0; }
+  .img-pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; max-height: 132px; overflow: auto; padding: 3px; }
+  .img-pal .pal { display: flex; height: 30px; padding: 0; overflow: hidden; border: 2px solid #fff; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+  .img-pal .pal i { flex: 1; }
+  .img-pal .pal.on { box-shadow: 0 0 0 2px var(--blue); }
   .img-file.on { background: #f3f7ff; }
   .img-file .n { cursor: pointer; }
   .img-file .n:hover { color: var(--blue); text-decoration: underline; }
@@ -569,10 +602,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const WEIGHTS: [string, string][] = [['400', '가늘게'], ['500', '보통'], ['700', '굵게'], ['900', '아주 굵게']];
 
   const TITLES = ['상단 · 작은 글씨', '중단 · 큰 글씨', '하단 · 작은 글씨'];
-  const TAGS = ['상', '중', '하'];
   const SEC_CLS = ['g-net', 'g-blog', 'g-dev'];
   $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec ${SEC_CLS[i]}">
-    <h3><span class="tag">${TAGS[i]}</span>${TITLES[i]}</h3>
+    <h3>${TITLES[i]}</h3>
     <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
     <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색</p>
     <div class="img-grid">
@@ -808,7 +840,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         next = await decode(files[pIdx]);
       } else {
         pIdx = 0;
-        const [w, h] = patState.size.split('x').map(Number);
+        const [w, h] = patDims();
         next = await svgToImg(patSvg(patState.active, w, h), w, h);
       }
     } catch { next = null; }
@@ -864,10 +896,72 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const patState = {
     sel: new Set<string>([PATTERNS[0][0]]),
     active: PATTERNS[0][0], // 미리보기에 보여줄 패턴 (마지막으로 누른 것)
-    mode: 'solid', bg: '#243b6b', bg2: '#0b1530', angle: 135, fg: '#3d5a9c', scale: 1, size: '1000x1000',
+    mode: 'solid', bg: '#243b6b', bg2: '#0b1530', angle: 135, fg: '#3d5a9c', scale: 1,
+    size: '1000x1000', cw: 1000, ch: 1000,
   };
   const bgSpec = () => (patState.mode === 'grad' ? `grad:${patState.bg}:${patState.bg2}:${patState.angle}` : patState.bg);
   const patSvg = (id: string, w: number, h: number) => makeSvg(id, bgSpec(), patState.fg, w, h, patState.scale);
+
+  // 이미지 크기: 목록에서 고르거나 직접 입력 (50~4000px)
+  function patDims(): [number, number] {
+    if (patState.size === 'custom') {
+      const c = (v: number) => Math.max(50, Math.min(4000, Math.round(v) || 1000));
+      return [c(patState.cw), c(patState.ch)];
+    }
+    const [w, h] = patState.size.split('x').map(Number);
+    return [w, h];
+  }
+
+  // 추천 색상: 네 가지 색이 한 묶음이에요. 밝기순으로 정렬해서 배경(어두운 쪽 2색)과 패턴색(그다음 색)에 넣습니다.
+  const PALETTES: [string, string[]][] = [
+    ['미드나이트 블루', ['#0f172a', '#1e3a5f', '#38bdf8', '#e0f2fe']],
+    ['딥 포레스트', ['#10261f', '#1d4d3b', '#4ade80', '#ecfccb']],
+    ['와인', ['#2b0f1c', '#5b1a35', '#e11d74', '#fde2ec']],
+    ['차콜 골드', ['#1a1a1d', '#34343b', '#d4a72c', '#f5e6b3']],
+    ['오션', ['#06283d', '#1363df', '#47b5ff', '#dff6ff']],
+    ['선셋', ['#3d1e6d', '#c2185b', '#ff7a45', '#ffd166']],
+    ['라벤더 나이트', ['#1b1535', '#4c3a8a', '#9b8cf0', '#ece8ff']],
+    ['민트 나이트', ['#0d2b2b', '#11595a', '#2dd4bf', '#ccfbf1']],
+    ['레드 블랙', ['#14090b', '#5c0f1d', '#e63946', '#fdebec']],
+    ['블루 그레이', ['#263447', '#3d5a80', '#98c1d9', '#e8f4fa']],
+    ['쿨 그레이', ['#1f2933', '#52606d', '#9aa5b1', '#e4e7eb']],
+    ['네온 퍼플', ['#0b0b17', '#7c3aed', '#22d3ee', '#f0abfc']],
+    ['네온 라임', ['#101010', '#1f2937', '#a3e635', '#facc15']],
+    ['레트로', ['#2f3e46', '#52796f', '#e9b44c', '#f2e8cf']],
+    ['빈티지 브라운', ['#3e2a21', '#7a5230', '#c9a66b', '#f1e4c3']],
+    ['얼스 톤', ['#4a3f35', '#8c7a6b', '#bfae9f', '#efe6dd']],
+    ['웜 크림', ['#5a3e2b', '#a47148', '#e0b88a', '#fff3e0']],
+    ['로즈 골드', ['#4a2c3a', '#b76e79', '#e8b4b8', '#fbeaec']],
+    ['코랄 피치', ['#ff6b6b', '#ffa07a', '#ffe0b2', '#fff5e6']],
+    ['선라이즈', ['#ff9a3c', '#ffcb74', '#fff1b8', '#fffbe6']],
+    ['파스텔 핑크', ['#ff9ebb', '#ffc2d4', '#ffd6e0', '#fff0f5']],
+    ['파스텔 민트', ['#7bc8a4', '#a7e6cf', '#d4f1e4', '#f2fff9']],
+    ['파스텔 퍼플', ['#b197fc', '#d0bfff', '#e9d8fd', '#f8f0ff']],
+    ['파스텔 스카이', ['#8ec5ff', '#b3d9ff', '#d6ecff', '#f2f9ff']],
+  ];
+  let palActive = -1;
+  const lum = (h: string) => {
+    const n = parseInt(h.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+  };
+  function renderPals() {
+    $('pal-grid').innerHTML = PALETTES.map(([name, cols], i) =>
+      `<button type="button" class="pal${i === palActive ? ' on' : ''}" data-pal="${i}" title="${name} · ${cols.join(' ')}" aria-label="${name}">${cols.map((c) => `<i style="background:${c}"></i>`).join('')}</button>`).join('');
+  }
+  $('pal-grid').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-pal]');
+    if (!b) return;
+    palActive = Number(b.dataset.pal);
+    const sorted = [...PALETTES[palActive][1]].sort((a, c) => lum(a) - lum(c));
+    patState.bg = sorted[0];
+    patState.bg2 = sorted[1];
+    patState.fg = sorted[2];
+    $<HTMLInputElement>('pat-bg').value = patState.bg;
+    $<HTMLInputElement>('pat-bg2').value = patState.bg2;
+    $<HTMLInputElement>('pat-fg').value = patState.fg;
+    renderPals();
+    patChanged();
+  });
 
   function renderPats() {
     $('pat-grid').innerHTML = PATTERNS.map(([id, name]) => {
@@ -903,9 +997,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
     $('pat-bg-l').textContent = grad ? '배경색 1' : '배경색';
   };
   $('pat-bgmode').addEventListener('change', (e) => { patState.mode = (e.target as HTMLSelectElement).value; showBgMode(); patChanged(); });
-  $('pat-bg').addEventListener('input', (e) => { patState.bg = (e.target as HTMLInputElement).value; patChanged(); });
-  $('pat-bg2').addEventListener('input', (e) => { patState.bg2 = (e.target as HTMLInputElement).value; patChanged(); });
-  $('pat-fg').addEventListener('input', (e) => { patState.fg = (e.target as HTMLInputElement).value; patChanged(); });
+  $('pat-bg').addEventListener('input', (e) => { patState.bg = (e.target as HTMLInputElement).value; palActive = -1; renderPals(); patChanged(); });
+  $('pat-bg2').addEventListener('input', (e) => { patState.bg2 = (e.target as HTMLInputElement).value; palActive = -1; renderPals(); patChanged(); });
+  $('pat-fg').addEventListener('input', (e) => { patState.fg = (e.target as HTMLInputElement).value; palActive = -1; renderPals(); patChanged(); });
   $('pat-angle').addEventListener('input', (e) => {
     const el = e.target as HTMLInputElement;
     patState.angle = Number(el.value);
@@ -918,9 +1012,32 @@ import ToolPage from '../../layouts/ToolPage.astro';
     el.closest('label')!.querySelector('b')!.textContent = el.value;
     patChanged();
   });
-  $('pat-size').addEventListener('change', (e) => { patState.size = (e.target as HTMLSelectElement).value; if (!files.length) loadPreview(); });
+
+  $('pat-size').addEventListener('change', (e) => {
+    const v = (e.target as HTMLSelectElement).value;
+    if (v === 'custom') {
+      const [w, h] = patDims(); // 직접 입력으로 바꿀 때는 지금 크기에서 시작
+      patState.cw = w;
+      patState.ch = h;
+      $<HTMLInputElement>('pat-w').value = String(w);
+      $<HTMLInputElement>('pat-h').value = String(h);
+    }
+    patState.size = v;
+    ['pat-w-w', 'pat-h-w', 'pat-custom-hint'].forEach((id) => (($(id) as HTMLElement).hidden = v !== 'custom'));
+    if (!files.length) loadPreview();
+  });
+  $('pat-w').addEventListener('input', (e) => { patState.cw = Number((e.target as HTMLInputElement).value); if (!files.length) loadPreview(); });
+  $('pat-h').addEventListener('input', (e) => { patState.ch = Number((e.target as HTMLInputElement).value); if (!files.length) loadPreview(); });
+  const fixDims = () => {
+    const [w, h] = patDims();
+    $<HTMLInputElement>('pat-w').value = String(w);
+    $<HTMLInputElement>('pat-h').value = String(h);
+  };
+  $('pat-w').addEventListener('change', fixDims);
+  $('pat-h').addEventListener('change', fixDims);
+
   $('pat-add').addEventListener('click', () => {
-    const [w, h] = patState.size.split('x').map(Number);
+    const [w, h] = patDims();
     const made = PATTERNS.filter(([id]) => patState.sel.has(id)).map(([id]) =>
       new File([patSvg(id, w, h)], `pattern-${id}-${w}x${h}.svg`, { type: 'image/svg+xml' }));
     addFiles(made);
@@ -1027,6 +1144,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     b.textContent = old;
   });
 
+  renderPals();
   renderPats();
   renderFiles();
   loadPreview();
