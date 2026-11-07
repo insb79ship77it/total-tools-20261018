@@ -43,6 +43,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <div class="img-grid">
               <label class="img-clr"><span>패턴색</span><input type="color" id="pat-fg" value="#3d5a9c" /></label>
               <label class="img-rng"><span>무늬 크기 <b>1</b>배</span><input type="range" id="pat-scale" min="0.4" max="3" step="0.1" value="1" /></label>
+              <label class="img-rng"><span>패턴 투명도 <b>100</b>%</span><input type="range" id="pat-alpha" min="10" max="100" step="5" value="100" /></label>
             </div>
           </div>
 
@@ -52,6 +53,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
               <label class="img-sel" style="grid-column:1/-1"><span>이미지 크기</span>
                 <select class="field" id="pat-size">
                   <option value="1000x1000">정사각 1000×1000</option>
+                  <option value="900x900">정사각 900×900</option>
                   <option value="600x600">정사각 600×600</option>
                   <option value="1200x630">가로 1200×630</option>
                   <option value="700x467">가로 700×467</option>
@@ -67,8 +69,6 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%;margin-top:12px">이 패턴으로 이미지 추가</button>
           </div>
         </details>
-        <div class="img-files" id="files"></div>
-        <div class="btns"><button type="button" class="btn btn-ghost btn-sm" id="clear-files" hidden>모두 지우기</button></div>
       </div>
 
       <div class="card panel">
@@ -90,8 +90,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <select class="field" id="fmt"><option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option></select>
           </label>
           <label class="img-rng"><span>화질 <b id="q-v">90</b></span><input type="range" id="quality" min="40" max="100" step="1" value="90" /></label>
-          <label class="img-sel"><span>최대 가로 (px, 비우면 원본)</span><input class="field" id="maxw" type="number" min="1" placeholder="예: 1200" /></label>
-          <label class="img-sel"><span>최대 세로 (px, 비우면 원본)</span><input class="field" id="maxh" type="number" min="1" placeholder="예: 1200" /></label>
+          <label class="img-sel"><span>크기 조절</span>
+            <select class="field" id="rs-mode"><option value="none">원본 크기 유지</option><option value="pct">비율(%)로 줄이기</option><option value="px">최대 가로·세로(px)</option></select>
+          </label>
+          <label class="img-rng" id="rs-pct-w" hidden><span>줄이는 비율 <b id="rs-pct-v">50</b>%</span><input type="range" id="rs-pct" min="1" max="100" step="1" value="50" /></label>
+          <label class="img-sel" id="rs-w-w" hidden><span>최대 가로 (px, 비우면 제한 없음)</span><input class="field" id="maxw" type="number" min="1" placeholder="예: 1200" /></label>
+          <label class="img-sel" id="rs-h-w" hidden><span>최대 세로 (px, 비우면 제한 없음)</span><input class="field" id="maxh" type="number" min="1" placeholder="예: 1200" /></label>
+          <p class="hint" id="rs-calc" style="grid-column:1/-1;margin:0"></p>
           <label class="img-clr"><span>JPG 배경색 (투명한 부분)</span><input type="color" id="bgc" value="#ffffff" /></label>
           <label class="img-sel"><span>파일 이름 뒤에 붙일 글자</span><input class="field" id="suffix" type="text" placeholder="예: _thumb" /></label>
         </div>
@@ -108,6 +113,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
       <div class="prog" style="margin-top:14px"><div id="rprog"></div></div>
       <p class="note" id="rstatus" style="margin:10px 0 0">이미지를 추가하면 변환할 수 있어요.</p>
       <div class="btns" id="zips"></div>
+      <details class="img-det" id="files-det" hidden>
+        <summary id="files-sum">작업 파일 · 자세히 보기</summary>
+        <div class="img-files" id="files"></div>
+        <div class="btns"><button type="button" class="btn btn-ghost btn-sm" id="clear-files" hidden>모두 지우기</button></div>
+      </details>
     </div>
   </div>
 
@@ -175,6 +185,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-pal .pal { display: flex; height: 30px; padding: 0; overflow: hidden; border: 2px solid #fff; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
   .img-pal .pal i { flex: 1; }
   .img-pal .pal.on { box-shadow: 0 0 0 2px var(--blue); }
+  .img-det { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; background: #fff; }
+  .img-det summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: var(--navy); font-size: 0.9rem; }
+  .img-det[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+  .img-det .img-files { margin-top: 0; }
   .img-file.on { background: #f3f7ff; }
   .img-file .n { cursor: pointer; }
   .img-file .n:hover { color: var(--blue); text-decoration: underline; }
@@ -199,11 +213,12 @@ import ToolPage from '../../layouts/ToolPage.astro';
     stroke: boolean; strokeColor: string; strokeW: number;
     shadow: boolean; shadowColor: string; shadowBlur: number; shadowDist: number;
     box: 'none' | 'box' | 'band'; boxColor: string; boxAlpha: number; boxRadius: number;
+    padT: number; padB: number; padL: number; padR: number;
     img: Img | null; imgSize: number; imgPos: 'left' | 'top' | 'bottom';
   };
   type Wm = { text: string; font: string; weight: number; color: string; size: number; alpha: number; angle: number; gap: number };
 
-  const FONTS = [
+  const FONTS: { id: string; name: string; css: string; faces?: Record<number, string> }[] = [
     { id: 'pretendard', name: '프리텐다드', css: '"Pretendard Variable", Pretendard' },
     { id: 'noto', name: '노토 산스', css: '"Noto Sans KR"' },
     { id: 'nanumg', name: '나눔고딕', css: '"Nanum Gothic"' },
@@ -212,10 +227,22 @@ import ToolPage from '../../layouts/ToolPage.astro';
     { id: 'blackhan', name: '블랙한산스', css: '"Black Han Sans"' },
     { id: 'jua', name: '주아', css: '"Jua"' },
     { id: 'dohyeon', name: '도현', css: '"Do Hyeon"' },
+    { id: 'score', name: '에스코어 드림', css: '"S-CoreDream-6Bold"', faces: { 400: 'S-CoreDream-4Regular', 500: 'S-CoreDream-5Medium', 700: 'S-CoreDream-6Bold', 900: 'S-CoreDream-9Black' } },
+    { id: 'gmarket', name: 'G마켓 산스', css: '"GmarketSans"' },
+    { id: 'paperlogy', name: '페이퍼로지', css: '"Paperlogy"' },
     { id: 'poppins', name: 'Poppins (영문)', css: '"Poppins"' },
     { id: 'montserrat', name: 'Montserrat (영문)', css: '"Montserrat"' },
   ];
-  const fam = (id: string) => (FONTS.find((f) => f.id === id) || FONTS[0]).css + ', sans-serif';
+  // 굵기별로 글꼴 이름이 따로 있는 글꼴(에스코어 드림)은 가장 가까운 굵기의 이름을 씁니다.
+  function fontStr(id: string, weight: number, px: number) {
+    const f = FONTS.find((x) => x.id === id) || FONTS[0];
+    if (f.faces) {
+      const keys = Object.keys(f.faces).map(Number);
+      const k = keys.reduce((a, b) => (Math.abs(b - weight) < Math.abs(a - weight) ? b : a));
+      return `400 ${px}px "${f.faces[k]}", sans-serif`;
+    }
+    return `${weight} ${px}px ${f.css}, sans-serif`;
+  }
   const hexA = (h: string, a: number) => {
     const n = parseInt(h.slice(1), 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
@@ -273,7 +300,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const ls = s.ls * sc;
     const hlPad = fs * 0.25;
     ctx.save();
-    ctx.font = `${s.weight} ${fs}px ${fam(s.font)}`;
+    ctx.font = fontStr(s.font, s.weight, fs);
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
 
@@ -296,17 +323,16 @@ import ToolPage from '../../layouts/ToolPage.astro';
     else if (s.imgPos === 'left') { cw = iw + gap + textW; ch = Math.max(ih, textH); }
     else { cw = Math.max(iw, textW); ch = ih + gap + textH; }
 
-    const padX = fs * 0.8;
-    const padY = fs * 0.35;
+    const pT = (fs * s.padT) / 100, pB = (fs * s.padB) / 100, pL = (fs * s.padL) / 100, pR = (fs * s.padR) / 100;
     const band = s.box === 'band';
-    const bw = band ? W : cw + padX * 2;
-    const bh = ch + padY * 2;
+    const bw = band ? W : cw + pL + pR;
+    const bh = ch + pT + pB;
     const cx = (s.x / 100) * W;
     const cy = (s.y / 100) * H;
     const bx = band ? 0 : cx - bw / 2;
     const by = cy - bh / 2;
-    const ox = band ? cx - cw / 2 : bx + padX;
-    const oy = by + padY;
+    const ox = band ? cx - cw / 2 : bx + pL;
+    const oy = by + pT;
 
     if (s.box !== 'none') {
       ctx.save();
@@ -378,7 +404,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const fs = (wm.size / 100) * W;
     ctx.save();
     ctx.globalAlpha = wm.alpha / 100;
-    ctx.font = `${wm.weight} ${fs}px ${fam(wm.font)}`;
+    ctx.font = fontStr(wm.font, wm.weight, fs);
     ctx.fillStyle = wm.color;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -528,15 +554,6 @@ import ToolPage from '../../layouts/ToolPage.astro';
     ['grad1', '대각 그라데이션', ({ fg, bg }) => `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${fg}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>`],
     ['grad2', '원형 그라데이션', ({ fg, bg }) => `<defs><radialGradient id="g" cx=".5" cy=".5" r=".75"><stop offset="0" stop-color="${fg}"/><stop offset="1" stop-color="${bg}"/></radialGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>`],
     ['grad3', '위아래 그라데이션', ({ fg, bg }) => `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${fg}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>`],
-    ['sun', '햇살', ({ fg, w, h }) => {
-      const cx = w / 2, cy = h / 2, R = Math.hypot(w, h), N = 24;
-      let o = '';
-      for (let i = 0; i < N; i += 2) {
-        const a0 = (i * 2 * Math.PI) / N, a1 = ((i + 1) * 2 * Math.PI) / N;
-        o += `<polygon points="${cx},${cy} ${cx + R * Math.cos(a0)},${cy + R * Math.sin(a0)} ${cx + R * Math.cos(a1)},${cy + R * Math.sin(a1)}" fill="${fg}" opacity=".4"/>`;
-      }
-      return o;
-    }],
     ['tiles', '타일', ({ u, fg }) => tile(u * 1.2, u * 1.2, `<rect x="${u * 0.1}" y="${u * 0.1}" width="${u}" height="${u}" rx="${u * 0.12}" fill="${fg}" opacity=".55"/>`)],
     ['pin', '핀스트라이프', ({ u, fg }) => tile(u * 0.8, u, `<rect width="${u * 0.04}" height="${u}" fill="${fg}"/>`)],
     ['dash', '점선', ({ u, fg }) => tile(u, u * 0.6, `<line x1="0" y1="${u * 0.3}" x2="${u}" y2="${u * 0.3}" stroke="${fg}" stroke-width="${u * 0.08}" stroke-dasharray="${u * 0.25} ${u * 0.2}"/>`)],
@@ -557,13 +574,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const dx = (Math.sin(a) * L) / 2, dy = (Math.cos(a) * L) / 2;
     return `<defs><linearGradient id="bgg" gradientUnits="userSpaceOnUse" x1="${(cx - dx).toFixed(1)}" y1="${(cy + dy).toFixed(1)}" x2="${(cx + dx).toFixed(1)}" y2="${(cy - dy).toFixed(1)}"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#bgg)"/>`;
   }
-  function makeSvg(id: string, bg: string, fg: string, w: number, h: number, scale = 1, uBase = (56 * Math.max(w, h)) / 1000) {
+  function makeSvg(id: string, bg: string, fg: string, w: number, h: number, scale = 1, uBase = (56 * Math.max(w, h)) / 1000, alpha = 1) {
     const p = PATTERNS.find((x) => x[0] === id) || PATTERNS[0];
     const g = bg.startsWith('grad:') ? bg.split(':') : null;
     const c1 = g ? g[1] : bg;
     const base = g ? gradDef(g[1], g[2], Number(g[3]) || 0, w, h) : `<rect width="100%" height="100%" fill="${bg}"/>`;
     const body = p[2]({ u: uBase * scale, fg, bg: c1, w, h, r: rngSeed(PATTERNS.indexOf(p) * 977 + 13) });
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${base}${body}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${base}${alpha < 1 ? `<g opacity="${alpha}">${body}</g>` : body}</svg>`;
   }
   // ==PAT-END==
 
@@ -573,6 +590,33 @@ import ToolPage from '../../layouts/ToolPage.astro';
   gf.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Jua&family=Do+Hyeon&family=Poppins:wght@400;500;700;900&family=Montserrat:wght@400;500;700;900&display=swap';
   document.head.append(gf);
 
+  // 한글 웹폰트: 페이퍼로지, G마켓 산스(jsDelivr), 에스코어 드림(굵기별 패키지)
+  const fontLinks: HTMLLinkElement[] = [gf];
+  ['4regular', '5medium', '6bold', '9black'].forEach((n) => {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = `https://cdn.jsdelivr.net/npm/@noonnu/s-coredream-${n}@0.0.1/index.css`;
+    document.head.append(l);
+    fontLinks.push(l);
+  });
+  const face = (family: string, weight: number, url: string, fmt: string) =>
+    `@font-face{font-family:'${family}';font-weight:${weight};font-display:swap;src:url('${url}') format('${fmt}')}`;
+  const PL = 'https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/';
+  const GM = 'https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/';
+  const kfont = document.createElement('style');
+  kfont.textContent = [
+    face('Paperlogy', 400, PL + 'Paperlogy-4Regular.woff2', 'woff2'),
+    face('Paperlogy', 500, PL + 'Paperlogy-5Medium.woff2', 'woff2'),
+    face('Paperlogy', 700, PL + 'Paperlogy-7Bold.woff2', 'woff2'),
+    face('Paperlogy', 900, PL + 'Paperlogy-9Black.woff2', 'woff2'),
+    face('GmarketSans', 400, GM + 'GmarketSansMedium.woff', 'woff'),
+    face('GmarketSans', 500, GM + 'GmarketSansMedium.woff', 'woff'),
+    face('GmarketSans', 700, GM + 'GmarketSansBold.woff', 'woff'),
+    face('GmarketSans', 900, GM + 'GmarketSansBold.woff', 'woff'),
+  ].join('\n');
+  document.head.append(kfont);
+  const sheetsReady = Promise.all(fontLinks.map((l) => new Promise((r) => { l.onload = l.onerror = () => r(null); })));
+
   // ---------- 설정값 ----------
   const mk = (o: Partial<Sec>): Sec => ({
     text: '', font: 'pretendard', weight: 700, size: 5, color: '#ffffff', accent: '#ffd400', hl: '#1f4bd8',
@@ -580,6 +624,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     stroke: false, strokeColor: '#000000', strokeW: 4,
     shadow: false, shadowColor: '#000000', shadowBlur: 8, shadowDist: 3,
     box: 'none', boxColor: '#000000', boxAlpha: 60, boxRadius: 30,
+    padT: 35, padB: 35, padL: 80, padR: 80,
     img: null, imgSize: 8, imgPos: 'left', ...o,
   });
   const secs: Sec[] = [
@@ -607,13 +652,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <h3>${TITLES[i]}</h3>
     <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
     <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색</p>
-    <div class="img-grid">
+    <details><summary>글자 설정 (글꼴 · 크기 · 위치)</summary><div class="img-grid">
       ${sel(i, 'font', '글꼴', FONT_OPTS, s.font)}${sel(i, 'weight', '굵기', WEIGHTS, s.weight)}
       ${clr(i, 'color', '글자색', s.color)}${sel(i, 'align', '정렬', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']], s.align)}
       ${rng(i, 'size', '크기', 1, 25, 0.1, s.size, '%')}${rng(i, 'lh', '줄 간격', 0.8, 2, 0.05, s.lh)}
       ${rng(i, 'ls', '자간', -5, 20, 0.5, s.ls)}${rng(i, 'y', '세로 위치', 0, 100, 0.5, s.y, '%')}
       ${rng(i, 'x', '가로 위치', 0, 100, 0.5, s.x, '%')}
-    </div>
+    </div></details>
     <details><summary>강조 · 테두리 · 그림자</summary><div class="img-grid">
       ${clr(i, 'hl', '박스 강조 배경색', s.hl)}${clr(i, 'accent', '강조 글자색', s.accent)}
       ${chk(i, 'stroke', '테두리', s.stroke)}${clr(i, 'strokeColor', '테두리 색', s.strokeColor)}
@@ -624,6 +669,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
     <details><summary>배경 박스</summary><div class="img-grid">
       ${sel(i, 'box', '모양', [['none', '없음'], ['box', '박스 (글씨에 맞춤)'], ['band', '가로 전체 띠']], s.box)}${clr(i, 'boxColor', '박스 색', s.boxColor)}
       ${rng(i, 'boxAlpha', '박스 투명도(진하기)', 0, 100, 1, s.boxAlpha, '%')}${rng(i, 'boxRadius', '모서리 둥글기', 0, 100, 1, s.boxRadius, '%')}
+      ${rng(i, 'padT', '위 간격', 0, 200, 5, s.padT, '%')}${rng(i, 'padB', '아래 간격', 0, 200, 5, s.padB, '%')}
+      ${rng(i, 'padL', '왼쪽 간격', 0, 200, 5, s.padL, '%')}${rng(i, 'padR', '오른쪽 간격', 0, 200, 5, s.padR, '%')}
+      <p class="hint" style="grid-column:1/-1;margin:0">간격은 글자 크기에 대한 비율이에요. (100% = 글자 한 칸)</p>
     </div></details>
     <details><summary>이미지(로고)</summary><div class="img-grid">
       <label class="img-sel" style="grid-column:1/-1"><span>이미지 올리기 (PNG, JPG, SVG)</span><input type="file" accept="image/*" data-simg="${i}"></label>
@@ -703,6 +751,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let running = false;
   let curIdx = -1;
   let pIdx = 0;
+  let pvMode: 'file' | 'pattern' = 'pattern'; // 미리보기가 보여주는 것: 선택한 파일 / 패턴 설정
+  let lastSec: number | null = null;
+  const dur = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}분 ${n % 60}초` : `${n}초`);
   type Result = { name: string; blob: Blob; url: string };
   const resMap = new Map<File, Result>();
   const failSet = new Set<File>();
@@ -716,7 +767,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       : failSet.has(f) ? '<span class="st err">실패</span>'
       : running && curIdx === i ? '<span class="st">변환 중…</span>'
       : '<span class="st">대기</span>';
-    return `<div class="img-file${i === pIdx ? ' on' : ''}" data-i="${i}"><span class="n" title="${esc(f.name)} · 눌러서 미리보기">${esc(f.name)}</span><span class="sz">${kb(f.size)}</span>${state}<button type="button" data-rm="${i}" aria-label="삭제">✕</button></div>`;
+    return `<div class="img-file${pvMode === 'file' && i === pIdx ? ' on' : ''}" data-i="${i}"><span class="n" title="${esc(f.name)} · 눌러서 미리보기">${esc(f.name)}</span><span class="sz">${kb(f.size)}</span>${state}<button type="button" data-rm="${i}" aria-label="삭제">✕</button></div>`;
   }
   function updateRow(i: number) {
     const holder = document.createElement('div');
@@ -741,13 +792,15 @@ import ToolPage from '../../layouts/ToolPage.astro';
     if (cur.length) zipParts.push(cur);
     $('zips').innerHTML = zipParts
       .map((p, n) => `<button type="button" class="btn btn-ghost btn-sm" data-zip="${n}">${zipParts.length > 1 ? `ZIP ${n + 1}` : 'ZIP으로 받기'} (${p.length}장 · ${kb(p.reduce((a, r) => a + r.blob.size, 0))})</button>`)
-      .join('');
+      .join('') + (zipParts.length && lastSec !== null ? `<span class="hint" style="margin:0;align-self:center">작업시간 ${dur(lastSec)}</span>` : '');
   }
 
   function renderFiles() {
     $('files').innerHTML = files.map(rowHtml).join('');
     rows = [...($('files').children as HTMLCollectionOf<HTMLElement>)];
     ($('clear-files') as HTMLElement).hidden = !files.length;
+    ($('files-det') as HTMLElement).hidden = !files.length;
+    $('files-sum').textContent = `작업 파일 ${files.length}장${resMap.size ? ` · 변환 완료 ${resMap.size}장` : ''} · 자세히 보기`;
     const run = $<HTMLButtonElement>('run');
     run.disabled = !files.length || running;
     run.textContent = files.length ? `변환 시작 (${files.length}장)` : '변환 시작';
@@ -758,7 +811,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     buildZips();
   }
 
-  function addFiles(list: FileList | File[] | null) {
+  function addFiles(list: FileList | File[] | null, focus = false) {
     if (running || !list) return;
     const seen = new Set(files.map((f) => `${f.name}|${f.size}|${f.lastModified}`));
     let added = 0;
@@ -771,16 +824,19 @@ import ToolPage from '../../layouts/ToolPage.astro';
       added++;
     }
     if (!added) return;
-    const wasEmpty = files.length === added;
+    const firstNew = files.length - added;
+    pvMode = 'file';
+    if (firstNew === 0) pIdx = 0;
+    if (focus) pIdx = firstNew; // 패턴으로 만든 이미지는 바로 미리보기로 보여줍니다
     renderFiles();
-    if (wasEmpty) { pIdx = 0; loadPreview(); }
-    else updateNav();
+    loadPreview();
   }
   function dropResult(f: File) {
     const r = resMap.get(f);
     if (r) URL.revokeObjectURL(r.url);
     resMap.delete(f);
     failSet.delete(f);
+    if (!resMap.size) lastSec = null;
   }
 
   $('file').addEventListener('change', (e) => { addFiles((e.target as HTMLInputElement).files); (e.target as HTMLInputElement).value = ''; });
@@ -792,7 +848,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   $('files').addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     const name = t.closest('.n');
-    if (name) { pIdx = Number((name.closest('.img-file') as HTMLElement).dataset.i); loadPreview(); return; }
+    if (name) { pIdx = Number((name.closest('.img-file') as HTMLElement).dataset.i); pvMode = 'file'; loadPreview(); return; }
     const b = t.closest<HTMLButtonElement>('button[data-rm]');
     if (!b || running) return;
     const i = Number(b.dataset.rm);
@@ -818,11 +874,14 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let loadToken = 0;
 
   function updateNav() {
-    ($('pv-nav') as HTMLElement).hidden = files.length < 2;
+    const fileMode = pvMode === 'file' && files.length > 0;
+    ($('pv-nav') as HTMLElement).hidden = !(fileMode && files.length > 1);
     $('pv-count').textContent = `${pIdx + 1} / ${files.length}`;
-    $('pv-name').textContent = files.length ? `미리보기 · ${files[pIdx].name}` : '미리보기 · 배경 패턴 (이미지를 추가하면 그 이미지로 보여줘요)';
-    ($('pv-dl') as HTMLElement).hidden = !(files.length && resMap.has(files[pIdx]));
-    rows.forEach((r, i) => r.classList.toggle('on', i === pIdx));
+    $('pv-name').textContent = fileMode ? `미리보기 · ${files[pIdx].name}`
+      : files.length ? '미리보기 · 배경 패턴 설정 중 (파일 이름을 누르면 그 이미지로 돌아가요)'
+      : '미리보기 · 배경 패턴 (이미지를 추가하면 그 이미지로 보여줘요)';
+    ($('pv-dl') as HTMLElement).hidden = !(fileMode && resMap.has(files[pIdx]));
+    rows.forEach((r, i) => r.classList.toggle('on', fileMode && i === pIdx));
   }
   async function svgToImg(svg: string, w: number, h: number) {
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
@@ -835,11 +894,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const my = ++loadToken;
     let next: (Img & { close: () => void }) | null = null;
     try {
-      if (files.length) {
+      if (files.length && pvMode === 'file') {
         pIdx = Math.max(0, Math.min(pIdx, files.length - 1));
         next = await decode(files[pIdx]);
       } else {
-        pIdx = 0;
+        if (!files.length) pIdx = 0;
         const [w, h] = patDims();
         next = await svgToImg(patSvg(patState.active, w, h), w, h);
       }
@@ -848,10 +907,12 @@ import ToolPage from '../../layouts/ToolPage.astro';
     if (prev) prev.close();
     prev = next;
     updateNav();
+    updateCalc();
     schedule();
   }
-  $('pv-prev').addEventListener('click', () => { pIdx = (pIdx - 1 + files.length) % files.length; loadPreview(); });
-  $('pv-next').addEventListener('click', () => { pIdx = (pIdx + 1) % files.length; loadPreview(); });
+  function toPattern() { pvMode = 'pattern'; loadPreview(); } // 패턴을 만지면 파일이 있어도 패턴 미리보기로
+  $('pv-prev').addEventListener('click', () => { pIdx = (pIdx - 1 + files.length) % files.length; pvMode = 'file'; loadPreview(); });
+  $('pv-next').addEventListener('click', () => { pIdx = (pIdx + 1) % files.length; pvMode = 'file'; loadPreview(); });
   $('pv-dl').addEventListener('click', () => {
     const r = files[pIdx] && resMap.get(files[pIdx]);
     if (!r) return;
@@ -866,7 +927,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   async function ensureFonts() {
     const jobs: Promise<unknown>[] = [];
     const want = (font: string, weight: number, text: string) => {
-      const f = `${weight} 40px ${fam(font)}`;
+      const f = fontStr(font, weight, 40);
       const t = text.replace(/[\[\]{}]/g, '') || 'Ab';
       try { if (!document.fonts.check(f, t)) jobs.push(document.fonts.load(f, t)); } catch {}
     };
@@ -896,11 +957,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const patState = {
     sel: new Set<string>([PATTERNS[0][0]]),
     active: PATTERNS[0][0], // 미리보기에 보여줄 패턴 (마지막으로 누른 것)
-    mode: 'solid', bg: '#243b6b', bg2: '#0b1530', angle: 135, fg: '#3d5a9c', scale: 1,
+    mode: 'solid', bg: '#243b6b', bg2: '#0b1530', angle: 135, fg: '#3d5a9c', scale: 1, alpha: 100,
     size: '1000x1000', cw: 1000, ch: 1000,
   };
   const bgSpec = () => (patState.mode === 'grad' ? `grad:${patState.bg}:${patState.bg2}:${patState.angle}` : patState.bg);
-  const patSvg = (id: string, w: number, h: number) => makeSvg(id, bgSpec(), patState.fg, w, h, patState.scale);
+  const patSvg = (id: string, w: number, h: number) => makeSvg(id, bgSpec(), patState.fg, w, h, patState.scale, undefined, patState.alpha / 100);
 
   // 이미지 크기: 목록에서 고르거나 직접 입력 (50~4000px)
   function patDims(): [number, number] {
@@ -965,14 +1026,14 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
   function renderPats() {
     $('pat-grid').innerHTML = PATTERNS.map(([id, name]) => {
-      const svg = makeSvg(id, bgSpec(), patState.fg, 150, 150, patState.scale, 30);
+      const svg = makeSvg(id, bgSpec(), patState.fg, 150, 150, patState.scale, 30, patState.alpha / 100);
       return `<button type="button" class="pat${patState.sel.has(id) ? ' on' : ''}" data-pat="${id}" title="${name}" aria-label="${name}" aria-pressed="${patState.sel.has(id)}" style="background-image:url('data:image/svg+xml,${encodeURIComponent(svg)}')"></button>`;
     }).join('');
     const n = patState.sel.size;
     $('pat-count').textContent = `${n}개 선택`;
     $('pat-add').textContent = n > 1 ? `선택한 패턴 ${n}개로 이미지 추가` : '이 패턴으로 이미지 추가';
   }
-  const patChanged = () => { renderPats(); if (!files.length) loadPreview(); };
+  const patChanged = () => { renderPats(); toPattern(); };
 
   $('pat-grid').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-pat]');
@@ -1013,6 +1074,12 @@ import ToolPage from '../../layouts/ToolPage.astro';
     patChanged();
   });
 
+  $('pat-alpha').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    patState.alpha = Number(el.value);
+    el.closest('label')!.querySelector('b')!.textContent = el.value;
+    patChanged();
+  });
   $('pat-size').addEventListener('change', (e) => {
     const v = (e.target as HTMLSelectElement).value;
     if (v === 'custom') {
@@ -1024,10 +1091,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
     }
     patState.size = v;
     ['pat-w-w', 'pat-h-w', 'pat-custom-hint'].forEach((id) => (($(id) as HTMLElement).hidden = v !== 'custom'));
-    if (!files.length) loadPreview();
+    toPattern();
   });
-  $('pat-w').addEventListener('input', (e) => { patState.cw = Number((e.target as HTMLInputElement).value); if (!files.length) loadPreview(); });
-  $('pat-h').addEventListener('input', (e) => { patState.ch = Number((e.target as HTMLInputElement).value); if (!files.length) loadPreview(); });
+  $('pat-w').addEventListener('input', (e) => { patState.cw = Number((e.target as HTMLInputElement).value); toPattern(); });
+  $('pat-h').addEventListener('input', (e) => { patState.ch = Number((e.target as HTMLInputElement).value); toPattern(); });
   const fixDims = () => {
     const [w, h] = patDims();
     $<HTMLInputElement>('pat-w').value = String(w);
@@ -1040,7 +1107,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const [w, h] = patDims();
     const made = PATTERNS.filter(([id]) => patState.sel.has(id)).map(([id]) =>
       new File([patSvg(id, w, h)], `pattern-${id}-${w}x${h}.svg`, { type: 'image/svg+xml' }));
-    addFiles(made);
+    addFiles(made, true);
   });
 
   // ---------- 변환 ----------
@@ -1054,15 +1121,45 @@ import ToolPage from '../../layouts/ToolPage.astro';
   fmtEl.addEventListener('change', syncQ);
   syncQ();
 
+  // 크기 조절: 원본 유지 / 비율(%) / 최대 가로·세로(px)
+  const rsMode = $<HTMLSelectElement>('rs-mode');
+  const rsPct = $<HTMLInputElement>('rs-pct');
+  function scaleFor(w: number, h: number) {
+    if (rsMode.value === 'pct') return Math.max(0.01, Math.min(1, (Number(rsPct.value) || 100) / 100));
+    if (rsMode.value === 'px') {
+      const maxW = Number($<HTMLInputElement>('maxw').value) || Infinity;
+      const maxH = Number($<HTMLInputElement>('maxh').value) || Infinity;
+      return Math.min(1, maxW / w, maxH / h);
+    }
+    return 1;
+  }
+  // 미리보기 이미지를 기준으로 바뀔 가로×세로를 계산해서 보여줍니다.
+  function updateCalc() {
+    const el = $('rs-calc');
+    if (!prev) { el.textContent = ''; return; }
+    const sc = scaleFor(prev.w, prev.h);
+    const w = Math.max(1, Math.round(prev.w * sc));
+    const h = Math.max(1, Math.round(prev.h * sc));
+    el.textContent = rsMode.value === 'none'
+      ? `미리보기 이미지 ${prev.w}×${prev.h} → 원본 크기 그대로 저장`
+      : `미리보기 이미지 ${prev.w}×${prev.h} → ${w}×${h}${rsMode.value === 'pct' ? ` (${rsPct.value}%)` : ''}로 저장`;
+  }
+  rsMode.addEventListener('change', () => {
+    ($('rs-pct-w') as HTMLElement).hidden = rsMode.value !== 'pct';
+    ($('rs-w-w') as HTMLElement).hidden = rsMode.value !== 'px';
+    ($('rs-h-w') as HTMLElement).hidden = rsMode.value !== 'px';
+    updateCalc();
+  });
+  rsPct.addEventListener('input', () => { $('rs-pct-v').textContent = rsPct.value; updateCalc(); });
+  ['maxw', 'maxh'].forEach((id) => $(id).addEventListener('input', updateCalc));
+
   const MIME: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
   const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
   async function convert(file: File) {
     const fmt = fmtEl.value;
-    const maxW = Number($<HTMLInputElement>('maxw').value) || Infinity;
-    const maxH = Number($<HTMLInputElement>('maxh').value) || Infinity;
     const d = await decode(file);
-    const scale = Math.min(1, maxW / d.w, maxH / d.h);
+    const scale = scaleFor(d.w, d.h);
     const W = Math.max(1, Math.round(d.w * scale));
     const H = Math.max(1, Math.round(d.h * scale));
     const c = document.createElement('canvas');
@@ -1110,6 +1207,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       await new Promise((r) => setTimeout(r, 0)); // 화면이 멈추지 않게 한 템포 쉽니다
     }
     const sec = Math.round((Date.now() - t0) / 1000);
+    lastSec = sec;
     $('rstatus').textContent = `완료 · ${ok}장 변환${fail ? `, ${fail}장 실패` : ''} · ${kb(srcSum)} → ${kb(outSum)} · 소요시간 ${sec}초${warn ? ' · ' + warn : ''}`;
     running = false;
     ($('run') as HTMLButtonElement).disabled = !files.length;
@@ -1144,8 +1242,25 @@ import ToolPage from '../../layouts/ToolPage.astro';
     b.textContent = old;
   });
 
+  // 새 글꼴이 불러와지지 않으면 목록에 표시해 줍니다.
+  async function checkCustomFonts() {
+    await sheetsReady;
+    for (const id of ['score', 'gmarket', 'paperlogy']) {
+      let ok = false;
+      try { ok = (await document.fonts.load(fontStr(id, 700, 24), '가A')).length > 0; } catch {}
+      if (!ok) {
+        document.querySelectorAll<HTMLOptionElement>(`select[data-k="font"] option[value="${id}"]`).forEach((o) => {
+          if (!o.textContent!.includes('불러오기 실패')) o.textContent += ' (불러오기 실패)';
+        });
+      }
+    }
+    schedule();
+  }
+
   renderPals();
   renderPats();
   renderFiles();
   loadPreview();
+  sheetsReady.then(schedule);
+  checkCustomFonts();
 </script>
