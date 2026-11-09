@@ -130,6 +130,109 @@ export const CARD_STYLES: [string, string, (k: CC) => string][] = [
       + rect(p - q, p - q, 2 * q, 2 * q, c.card) + rect(w - p - q, p - q, 2 * q, 2 * q, c.card)
       + rect(p - q, h - p - q, 2 * q, 2 * q, c.card) + rect(w - p - q, h - p - q, 2 * q, 2 * q, c.card);
   }],
+  ['folder', '폴더 탭', (k) => {
+    const { u, x0, y0, cw, ch, c } = k;
+    const tabW = cw * 0.36, tabH = 64 * u;
+    const pill = (i: number) => rect(x0 + 52 * u + i * 150 * u, y0 + ch - 92 * u, 130 * u, 36 * u, [c.accent, c.sub, c.accent][i], 18 * u, ` opacity="${[0.3, 1, 0.55][i]}"`);
+    return shadow(k, 28 * u)
+      + rect(x0, y0, tabW, tabH + 30 * u, c.accent, 24 * u)
+      + rect(x0 + tabW + 14 * u, y0 + 12 * u, cw * 0.12, tabH - 8 * u, c.sub, 10 * u)
+      + rect(x0 + tabW + 28 * u + cw * 0.12, y0 + 12 * u, cw * 0.07, tabH - 8 * u, c.sub, 10 * u, ' opacity=".6"')
+      + rect(x0, y0 + tabH, cw, ch - tabH, c.accent, 28 * u)
+      + rect(x0 + 24 * u, y0 + tabH + 24 * u, cw - 48 * u, ch - tabH - 60 * u, c.card, 18 * u)
+      + pill(0) + pill(1) + pill(2);
+  }],
+  ['soft', '소프트 카드', (k) => {
+    const { u, w, x0, y0, cw, ch, c } = k;
+    const r = 130 * u;
+    const g = `<defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.card}"/><stop offset="1" stop-color="${c.sub}"/></linearGradient></defs>`;
+    return g + rect(x0 - 8 * u, y0 - 8 * u, cw, ch, '#ffffff', r, ' opacity=".6"')
+      + [26, 16, 8].map((d, i) => rect(x0 + d * u, y0 + d * u, cw, ch, '#000000', r, ` opacity="${[0.05, 0.07, 0.09][i]}"`)).join('')
+      + rect(x0, y0, cw, ch, 'url(#sg)', r)
+      + `<circle cx="${n1(w / 2)}" cy="${n1(y0 + 62 * u)}" r="${n1(10 * u)}" fill="none" stroke="${c.accent}" stroke-width="${n1(5 * u)}"/>`;
+  }],
+  ['quote', '다크 인용 카드', (k) => {
+    const { u, w, h, c } = k;
+    const g = `<defs><linearGradient id="qg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity=".15"/><stop offset="1" stop-color="#000000" stop-opacity=".65"/></linearGradient></defs>`;
+    return g + rect(0, 0, w, h, 'url(#qg)')
+      + `<circle cx="${n1(w / 2)}" cy="${n1(130 * u)}" r="${n1(34 * u)}" fill="${c.accent}"/>`
+      + `<text x="${n1(w / 2)}" y="${n1(152 * u)}" font-family="Georgia, serif" font-weight="700" font-size="${n1(78 * u)}" text-anchor="middle" fill="${c.card}">“</text>`;
+  }],
+  ['sketch', '스케치 카드', (k) => {
+    const { u, w, h, x0, y0, cw, ch, c } = k;
+    const s = 40 * u;
+    const def = `<defs><pattern id="sk" width="${n1(s)}" height="${n1(s)}" patternUnits="userSpaceOnUse"><path d="M${n1(s)} 0H0V${n1(s)}" fill="none" stroke="${c.sub}" stroke-width="${n1(1.8 * u)}" opacity=".6"/></pattern></defs>`;
+    return def + rect(0, 0, w, h, 'url(#sk)')
+      + rect(x0 - 10 * u, y0 + 10 * u, cw, ch, 'none', 26 * u, ` stroke="${c.accent}" stroke-width="${n1(4 * u)}"`)
+      + rect(x0, y0, cw, ch, c.card, 26 * u, ` stroke="${c.accent}" stroke-width="${n1(5 * u)}"`);
+  }],
+  ['doodle', '라인 프레임 카드', (k) => {
+    const { u, x0, y0, cw, ch, c } = k;
+    return rect(x0 + 8 * u, y0 + 14 * u, cw, ch, 'none', 60 * u, ` stroke="${c.accent}" stroke-width="${n1(4 * u)}"`)
+      + rect(x0, y0, cw, ch, c.card, 60 * u, ` stroke="${c.accent}" stroke-width="${n1(10 * u)}"`)
+      + `<circle cx="${n1(x0 + cw - 52 * u)}" cy="${n1(y0 + 52 * u)}" r="${n1(11 * u)}" fill="${c.accent}"/>`;
+  }],
+  ['stack', '겹친 종이', (k) => {
+    const { u, w, h, x0, y0, cw, ch, c } = k;
+    const sheet = (a: number, fill: string) => `<g transform="rotate(${a} ${n1(w / 2)} ${n1(h / 2)})">${rect(x0, y0, cw, ch, fill, 8 * u, ` stroke="#000000" stroke-opacity=".14" stroke-width="${n1(3 * u)}"`)}</g>`;
+    return sheet(-4, c.sub) + sheet(3, c.card) + sheet(0, c.card);
+  }],
+  ['clipstack', '클립 + 겹친 종이', (k) => {
+    const { u, w, h, x0, y0, cw, ch, c } = k;
+    const cx = w / 2;
+    const sheet = (a: number, fill: string) => `<g transform="rotate(${a} ${n1(w / 2)} ${n1(h / 2)})">${rect(x0, y0, cw, ch, fill, 8 * u, ` stroke="#000000" stroke-opacity=".14" stroke-width="${n1(3 * u)}"`)}</g>`;
+    const wire = `<path d="M${n1(cx - 64 * u)} ${n1(y0 - 6 * u)}C${n1(cx - 64 * u)} ${n1(y0 - 92 * u)} ${n1(cx + 64 * u)} ${n1(y0 - 92 * u)} ${n1(cx + 64 * u)} ${n1(y0 - 6 * u)}" fill="none" stroke="${c.sub}" stroke-width="${n1(7 * u)}" stroke-linecap="round"/>`;
+    return sheet(-3, c.sub) + wire + sheet(0, c.card)
+      + rect(cx - 96 * u, y0 - 18 * u, 192 * u, 74 * u, c.accent, 12 * u) + rect(cx - 44 * u, y0 - 2 * u, 88 * u, 10 * u, c.sub, 5 * u);
+  }],
+  ['tabs', '인덱스 탭', (k) => {
+    const { u, x0, y0, cw, ch, c } = k;
+    const cardW = cw - 44 * u;
+    const tabs = ([[0.12, c.accent, 1], [0.31, c.sub, 1], [0.5, c.accent, 0.45]] as [number, string, number][])
+      .map(([t, f, o]) => rect(x0 + cardW - 10 * u, y0 + ch * t, 56 * u, ch * 0.15, f, 14 * u, ` opacity="${o}"`)).join('');
+    return rect(x0 + 12 * u, y0 + 12 * u, cardW, ch, '#000000', 26 * u, ' opacity=".10"') + tabs + rect(x0, y0, cardW, ch, c.card, 26 * u)
+      + line(x0 + 60 * u, y0 + 70 * u, x0 + cardW - 60 * u, y0 + 70 * u, c.accent, 4 * u)
+      + line(x0 + 60 * u, y0 + ch - 70 * u, x0 + cardW - 60 * u, y0 + ch - 70 * u, c.accent, 4 * u);
+  }],
+  ['webpage', '웹 페이지', (k) => {
+    const { u, x0, y0, cw, ch, c } = k;
+    const bars = [34, 48, 62].map((d) => line(x0 + 36 * u, y0 + d * u, x0 + 70 * u, y0 + d * u, c.accent, 5 * u, ' stroke-linecap="round"')).join('');
+    const sx = x0 + cw - 62 * u, sy = y0 + 44 * u;
+    return shadow(k, 22 * u) + rect(x0, y0, cw, ch, c.card, 22 * u, ` stroke="${c.sub}" stroke-width="${n1(4 * u)}"`) + bars
+      + `<circle cx="${n1(sx)}" cy="${n1(sy)}" r="${n1(11 * u)}" fill="none" stroke="${c.accent}" stroke-width="${n1(5 * u)}"/>`
+      + line(sx + 8 * u, sy + 8 * u, sx + 20 * u, sy + 20 * u, c.accent, 5 * u, ' stroke-linecap="round"')
+      + line(x0, y0 + 92 * u, x0 + cw, y0 + 92 * u, c.sub, 3 * u)
+      + rect(x0 + cw * 0.18, y0 + ch - 124 * u, cw * 0.64, 64 * u, c.accent, 32 * u);
+  }],
+  ['cloud', '구름 프레임', (k) => {
+    const { u, x0, y0, cw, ch, c } = k;
+    const r = 34 * u;
+    const nx = Math.max(4, Math.round(cw / (2 * r * 0.95))), ny = Math.max(4, Math.round(ch / (2 * r * 0.95)));
+    const shape = (fill: string, d: number) => {
+      let o = rect(x0 + r - d, y0 + r - d, cw - 2 * r + 2 * d, ch - 2 * r + 2 * d, fill);
+      const dot = (cx: number, cy: number) => `<circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r + d)}" fill="${fill}"/>`;
+      for (let i = 0; i < nx; i++) { const cx = x0 + (cw / nx) * (i + 0.5); o += dot(cx, y0 + r) + dot(cx, y0 + ch - r); }
+      for (let j = 0; j < ny; j++) { const cy = y0 + (ch / ny) * (j + 0.5); o += dot(x0 + r, cy) + dot(x0 + cw - r, cy); }
+      return o;
+    };
+    return shape(c.accent, 7 * u) + shape(c.card, 0);
+  }],
+  ['gridbg', '격자 배경 카드', (k) => {
+    const { u, w, h, x0, y0, cw, ch, c } = k;
+    const s = 44 * u;
+    const def = `<defs><pattern id="gb" width="${n1(s)}" height="${n1(s)}" patternUnits="userSpaceOnUse"><path d="M${n1(s)} 0H0V${n1(s)}" fill="none" stroke="${c.card}" stroke-width="${n1(2.5 * u)}" opacity=".4"/></pattern></defs>`;
+    return def + rect(0, 0, w, h, 'url(#gb)') + shadow(k, 18 * u)
+      + rect(x0, y0, cw, ch, c.card, 18 * u, ` stroke="${c.accent}" stroke-width="${n1(6 * u)}"`)
+      + rect(x0 + cw * 0.2, y0 + ch - 128 * u, cw * 0.6, 58 * u, c.accent, 29 * u);
+  }],
+  ['glass', '글라스 카드', (k) => {
+    const { u, w, h, x0, y0, cw, ch, c } = k;
+    const g = `<defs><linearGradient id="gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.bg}"/><stop offset="1" stop-color="${c.sub}"/></linearGradient></defs>`;
+    const dots = [0, 1, 2].map((i) => `<circle cx="${n1(x0 + (36 + i * 26) * u)}" cy="${n1(y0 + 36 * u)}" r="${n1(8 * u)}" fill="${c.accent}" opacity="${[0.85, 0.55, 0.3][i]}"/>`).join('');
+    return g + rect(0, 0, w, h, 'url(#gl)') + shadow(k, 26 * u, 14)
+      + rect(x0, y0, cw, ch, c.card, 26 * u, ` fill-opacity=".88" stroke="${c.card}" stroke-width="${n1(3 * u)}"`) + dots
+      + rect(x0 + cw * 0.2, y0 + ch - 120 * u, cw * 0.6, 56 * u, 'none', 28 * u, ` stroke="${c.accent}" stroke-width="${n1(4 * u)}"`);
+  }],
 ];
 
 export function makeCardSvg(id: string, c: CardColors, w: number, h: number) {
