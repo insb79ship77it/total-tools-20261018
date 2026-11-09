@@ -69,6 +69,55 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%;margin-top:12px">이 패턴으로 이미지 추가</button>
           </div>
         </details>
+
+        <details class="img-pat" open>
+          <summary>카드뉴스 배경으로 이미지 만들기 (사진 없이 시작)</summary>
+          <p class="hint" style="margin:0 0 8px">노트·클립·프레임 같은 단순한 카드 배경이에요. 여러 개 골라서 한 번에 만들 수 있고, 글씨는 아래 "글씨 넣기"로 얹어요.</p>
+          <div class="img-patgrid" id="card-grid"></div>
+          <div class="btns" style="margin:8px 0 0">
+            <button type="button" class="btn btn-ghost btn-sm" id="card-all">전체 선택</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="card-none">선택 해제</button>
+            <span class="hint" id="card-count" style="margin:0;align-self:center"></span>
+          </div>
+
+          <div class="img-sub">
+            <h4>추천 색상</h4>
+            <p class="hint" style="margin:0 0 8px">눌러서 바탕·카드·포인트·보조색에 한 번에 적용해요.</p>
+            <div class="img-pal" id="cpal-grid"></div>
+          </div>
+
+          <div class="img-sub">
+            <h4>색상 설정</h4>
+            <div class="img-grid">
+              <label class="img-clr"><span>바탕색</span><input type="color" id="card-c-bg" value="#cfe3f7" /></label>
+              <label class="img-clr"><span>카드색</span><input type="color" id="card-c-card" value="#f7f9fc" /></label>
+              <label class="img-clr"><span>포인트색</span><input type="color" id="card-c-accent" value="#2f5bd9" /></label>
+              <label class="img-clr"><span>보조색</span><input type="color" id="card-c-sub" value="#a9c9ee" /></label>
+            </div>
+          </div>
+
+          <div class="img-sub">
+            <h4>사이즈 설정</h4>
+            <div class="img-grid">
+              <label class="img-sel" style="grid-column:1/-1"><span>이미지 크기</span>
+                <select class="field" id="card-size">
+                  <option value="1000x1000">정사각 1000×1000</option>
+                  <option value="900x900">정사각 900×900</option>
+                  <option value="600x600">정사각 600×600</option>
+                  <option value="1200x630">가로 1200×630</option>
+                  <option value="700x467">가로 700×467</option>
+                  <option value="1920x1080">16:9 1920×1080</option>
+                  <option value="1080x1350">세로 1080×1350</option>
+                  <option value="custom">직접 입력</option>
+                </select>
+              </label>
+              <label class="img-sel" id="card-w-w" hidden><span>가로 (px)</span><input class="field" type="number" id="card-w" min="50" max="4000" value="1000" /></label>
+              <label class="img-sel" id="card-h-w" hidden><span>세로 (px)</span><input class="field" type="number" id="card-h" min="50" max="4000" value="1000" /></label>
+            </div>
+            <p class="hint" id="card-custom-hint" hidden style="margin:6px 0 0">50~4000px 사이로 입력하세요. 범위를 넘으면 자동으로 맞춰져요.</p>
+            <button type="button" class="btn btn-primary btn-sm" id="card-add" style="width:100%;margin-top:12px">이 스타일로 이미지 추가</button>
+          </div>
+        </details>
       </div>
 
       <div class="card panel">
@@ -205,6 +254,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   import { FONTS, fontStr, compose } from '../../lib/image/render';
   import type { Img, Sec, Wm } from '../../lib/image/render';
   import { PATTERNS, makeSvg } from '../../lib/image/patterns';
+  import { CARD_STYLES, makeCardSvg } from '../../lib/image/cardnews';
   import { makeZip } from '../../lib/image/zip';
 
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -379,7 +429,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   let running = false;
   let curIdx = -1;
   let pIdx = 0;
-  let pvMode: 'file' | 'pattern' = 'pattern'; // 미리보기가 보여주는 것: 선택한 파일 / 패턴 설정
+  let pvMode: 'file' | 'pattern' | 'card' = 'pattern'; // 미리보기가 보여주는 것: 선택한 파일 / 패턴 설정
   let lastSec: number | null = null;
   const dur = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}분 ${n % 60}초` : `${n}초`);
   type Result = { name: string; blob: Blob; url: string };
@@ -506,8 +556,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
     ($('pv-nav') as HTMLElement).hidden = !(fileMode && files.length > 1);
     $('pv-count').textContent = `${pIdx + 1} / ${files.length}`;
     $('pv-name').textContent = fileMode ? `미리보기 · ${files[pIdx].name}`
-      : files.length ? '미리보기 · 배경 패턴 설정 중 (파일 이름을 누르면 그 이미지로 돌아가요)'
-      : '미리보기 · 배경 패턴 (이미지를 추가하면 그 이미지로 보여줘요)';
+      : files.length ? `미리보기 · ${pvMode === 'card' ? '카드뉴스 배경' : '배경 패턴'} 설정 중 (파일 이름을 누르면 그 이미지로 돌아가요)`
+      : `미리보기 · ${pvMode === 'card' ? '카드뉴스 배경' : '배경 패턴'} (이미지를 추가하면 그 이미지로 보여줘요)`;
     ($('pv-dl') as HTMLElement).hidden = !(fileMode && resMap.has(files[pIdx]));
     rows.forEach((r, i) => r.classList.toggle('on', fileMode && i === pIdx));
   }
@@ -525,6 +575,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
       if (files.length && pvMode === 'file') {
         pIdx = Math.max(0, Math.min(pIdx, files.length - 1));
         next = await decode(files[pIdx]);
+      } else if (pvMode === 'card') {
+        if (!files.length) pIdx = 0;
+        const [w, h] = cardDims();
+        next = await svgToImg(cardSvg(cardState.active, w, h), w, h);
       } else {
         if (!files.length) pIdx = 0;
         const [w, h] = patDims();
@@ -538,6 +592,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     updateCalc();
     schedule();
   }
+  function toCard() { pvMode = 'card'; loadPreview(); }
   function toPattern() { pvMode = 'pattern'; loadPreview(); } // 패턴을 만지면 파일이 있어도 패턴 미리보기로
   $('pv-prev').addEventListener('click', () => { pIdx = (pIdx - 1 + files.length) % files.length; pvMode = 'file'; loadPreview(); });
   $('pv-next').addEventListener('click', () => { pIdx = (pIdx + 1) % files.length; pvMode = 'file'; loadPreview(); });
@@ -738,6 +793,114 @@ import ToolPage from '../../layouts/ToolPage.astro';
     addFiles(made, true);
   });
 
+  // ---------- 카드뉴스 배경 ----------
+  const cardState = {
+    sel: new Set<string>([CARD_STYLES[0][0]]),
+    active: CARD_STYLES[0][0], // 미리보기에 보여줄 스타일 (마지막으로 누른 것)
+    c: { bg: '#cfe3f7', card: '#f7f9fc', accent: '#2f5bd9', sub: '#a9c9ee' },
+    size: '1000x1000', cw: 1000, ch: 1000,
+  };
+  const cardSvg = (id: string, w: number, h: number) => makeCardSvg(id, cardState.c, w, h);
+  function cardDims(): [number, number] {
+    if (cardState.size === 'custom') {
+      const c = (v: number) => Math.max(50, Math.min(4000, Math.round(v) || 1000));
+      return [c(cardState.cw), c(cardState.ch)];
+    }
+    const [w, h] = cardState.size.split('x').map(Number);
+    return [w, h];
+  }
+
+  // 추천 색상 네 가지를 역할에 나눠 담습니다. 가장 밝은 색=카드, 가장 선명한 색=포인트, 남은 둘 중 어두운 쪽=바탕, 밝은 쪽=보조
+  const hsvSat = (h: string) => {
+    const n = parseInt(h.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const mx = Math.max(r, g, b);
+    return mx ? (mx - Math.min(r, g, b)) / mx : 0;
+  };
+  function cardRoles(cols: string[]) {
+    const byLum = [...cols].sort((a, b) => lum(a) - lum(b));
+    const rest = byLum.slice(0, 3);
+    const accent = rest.reduce((a, b) => (hsvSat(b) > hsvSat(a) ? b : a));
+    const others = rest.filter((x) => x !== accent);
+    return { card: byLum[3], accent, bg: others[0], sub: others[1] };
+  }
+  let cardPalActive = -1;
+  function renderCardPals() {
+    $('cpal-grid').innerHTML = PALETTES.map(([name, cols], i) =>
+      `<button type="button" class="pal${i === cardPalActive ? ' on' : ''}" data-cpal="${i}" title="${name} · ${cols.join(' ')}" aria-label="${name}">${cols.map((c) => `<i style="background:${c}"></i>`).join('')}</button>`).join('');
+  }
+  $('cpal-grid').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-cpal]');
+    if (!b) return;
+    cardPalActive = Number(b.dataset.cpal);
+    cardState.c = cardRoles(PALETTES[cardPalActive][1]);
+    (['bg', 'card', 'accent', 'sub'] as const).forEach((k) => ($<HTMLInputElement>('card-c-' + k).value = cardState.c[k]));
+    renderCardPals();
+    cardChanged();
+  });
+  (['bg', 'card', 'accent', 'sub'] as const).forEach((k) =>
+    $('card-c-' + k).addEventListener('input', (e) => {
+      cardState.c[k] = (e.target as HTMLInputElement).value;
+      cardPalActive = -1;
+      renderCardPals();
+      cardChanged();
+    }));
+
+  function renderCards() {
+    $('card-grid').innerHTML = CARD_STYLES.map(([id, name]) => {
+      const svg = makeCardSvg(id, cardState.c, 150, 150);
+      return `<button type="button" class="pat${cardState.sel.has(id) ? ' on' : ''}" data-card="${id}" title="${name}" aria-label="${name}" aria-pressed="${cardState.sel.has(id)}" style="background-image:url('data:image/svg+xml,${encodeURIComponent(svg)}')"></button>`;
+    }).join('');
+    const n = cardState.sel.size;
+    $('card-count').textContent = `${n}개 선택`;
+    $('card-add').textContent = n > 1 ? `선택한 스타일 ${n}개로 이미지 추가` : '이 스타일로 이미지 추가';
+  }
+  const cardChanged = () => { renderCards(); toCard(); };
+  $('card-grid').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-card]');
+    if (!b) return;
+    const id = b.dataset.card!;
+    if (cardState.sel.has(id) && cardState.sel.size > 1) {
+      cardState.sel.delete(id);
+      if (cardState.active === id) cardState.active = [...cardState.sel].pop()!;
+    } else {
+      cardState.sel.add(id);
+      cardState.active = id;
+    }
+    cardChanged();
+  });
+  $('card-all').addEventListener('click', () => { CARD_STYLES.forEach(([id]) => cardState.sel.add(id)); cardChanged(); });
+  $('card-none').addEventListener('click', () => { cardState.sel = new Set([cardState.active]); cardChanged(); });
+
+  $('card-size').addEventListener('change', (e) => {
+    const v = (e.target as HTMLSelectElement).value;
+    if (v === 'custom') {
+      const [w, h] = cardDims();
+      cardState.cw = w;
+      cardState.ch = h;
+      $<HTMLInputElement>('card-w').value = String(w);
+      $<HTMLInputElement>('card-h').value = String(h);
+    }
+    cardState.size = v;
+    ['card-w-w', 'card-h-w', 'card-custom-hint'].forEach((id) => (($(id) as HTMLElement).hidden = v !== 'custom'));
+    toCard();
+  });
+  $('card-w').addEventListener('input', (e) => { cardState.cw = Number((e.target as HTMLInputElement).value); toCard(); });
+  $('card-h').addEventListener('input', (e) => { cardState.ch = Number((e.target as HTMLInputElement).value); toCard(); });
+  const fixCardDims = () => {
+    const [w, h] = cardDims();
+    $<HTMLInputElement>('card-w').value = String(w);
+    $<HTMLInputElement>('card-h').value = String(h);
+  };
+  $('card-w').addEventListener('change', fixCardDims);
+  $('card-h').addEventListener('change', fixCardDims);
+  $('card-add').addEventListener('click', () => {
+    const [w, h] = cardDims();
+    const made = CARD_STYLES.filter(([id]) => cardState.sel.has(id)).map(([id]) =>
+      new File([cardSvg(id, w, h)], `cardnews-${id}-${w}x${h}.svg`, { type: 'image/svg+xml' }));
+    addFiles(made, true);
+  });
+
   // ---------- 변환 ----------
   const fmtEl = $<HTMLSelectElement>('fmt');
   const qEl = $<HTMLInputElement>('quality');
@@ -887,6 +1050,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
   renderPals();
   renderPats();
+  renderCardPals();
+  renderCards();
   renderFiles();
   loadPreview();
   sheetsReady.then(schedule);
