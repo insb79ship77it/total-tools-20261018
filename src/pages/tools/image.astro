@@ -10,7 +10,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
           <span>JPG, PNG, WebP, GIF(첫 장), SVG · 여러 장 가능 · 붙여넣기(Ctrl+V)도 돼요</span>
         </label>
         <input id="file" type="file" accept="image/*" multiple hidden />
-        <details class="img-pat" open>
+        <details class="img-pat">
           <summary>배경 패턴으로 이미지 만들기 (사진 없이 시작)</summary>
           <p class="hint" style="margin:0 0 8px">패턴을 여러 개 골라서 한 번에 이미지로 만들 수 있어요. (눌러서 선택·해제)</p>
           <div class="img-patgrid" id="pat-grid"></div>
@@ -70,7 +70,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
           </div>
         </details>
 
-        <details class="img-pat" open>
+        <details class="img-pat">
           <summary>카드뉴스 배경으로 이미지 만들기 (사진 없이 시작)</summary>
           <p class="hint" style="margin:0 0 8px">노트·클립·프레임 같은 단순한 카드 배경이에요. 여러 개 골라서 한 번에 만들 수 있고, 글씨는 아래 "글씨 넣기"로 얹어요.</p>
           <div class="img-patgrid" id="card-grid"></div>
