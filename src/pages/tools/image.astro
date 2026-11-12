@@ -147,7 +147,27 @@ import ToolPage from '../../layouts/ToolPage.astro';
           <label class="img-sel" id="rs-h-w" hidden><span>최대 세로 (px, 비우면 제한 없음)</span><input class="field" id="maxh" type="number" min="1" placeholder="예: 1200" /></label>
           <p class="hint" id="rs-calc" style="grid-column:1/-1;margin:0"></p>
           <label class="img-clr"><span>JPG 배경색 (투명한 부분)</span><input type="color" id="bgc" value="#ffffff" /></label>
-          <label class="img-sel"><span>파일 이름 뒤에 붙일 글자</span><input class="field" id="suffix" type="text" placeholder="예: _thumb" /></label>
+          <div class="img-sub" style="grid-column:1/-1">
+            <h4>파일 이름</h4>
+            <div class="img-grid">
+              <label class="img-sel"><span>이름 방식</span>
+                <select class="field" id="nm-mode"><option value="orig">기존 파일명 사용</option><option value="custom">직접 지정</option></select>
+              </label>
+              <label class="img-sel" id="nm-base-w" hidden><span>지정할 이름</span><input class="field" id="nm-base" type="text" placeholder="예: card" /></label>
+              <label class="img-chk" id="nm-seq-w" hidden style="grid-column:1/-1"><input type="checkbox" id="nm-seq" checked /> 여러 장이면 순번 붙이기 (-1, -2 …)</label>
+              <label class="img-sel"><span>이름 뒤에 붙일 글자 (선택)</span><input class="field" id="suffix" type="text" placeholder="예: _thumb" /></label>
+              <label class="img-sel"><span>날짜·시간 붙이기</span>
+                <select class="field" id="nm-stamp">
+                  <option value="none">붙이지 않음</option>
+                  <option value="date">날짜 (예: 20261109)</option>
+                  <option value="time">시간 (예: 153045)</option>
+                  <option value="both">날짜+시간 (예: 20261109_153045)</option>
+                </select>
+              </label>
+              <label class="img-chk" style="grid-column:1/-1"><input type="checkbox" id="nm-rand" /> 랜덤 숫자 4자리 붙이기</label>
+              <p class="hint" id="nm-example" style="grid-column:1/-1;margin:0"></p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -487,6 +507,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       $('rprog').style.width = '0';
     }
     buildZips();
+    updateNameExample();
   }
 
   function addFiles(list: FileList | File[] | null, focus = false) {
@@ -947,6 +968,42 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const MIME: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
   const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
+  // ==NAME-START==
+  // 파일 이름 = 이름(기존 또는 직접 지정) + 뒤에 붙일 글자 + 순번 + 날짜/시간 + 랜덤 4자리
+  const nmMode = $<HTMLSelectElement>('nm-mode');
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  function stampText(d: Date, kind: string) {
+    const date = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+    const time = `${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+    return kind === 'date' ? date : kind === 'time' ? time : kind === 'both' ? `${date}_${time}` : '';
+  }
+  const cleanName = (t: string) => t.replace(/[\\/:*?"<>|]+/g, '_');
+  function buildName(orig: string, idx: number, total: number, ext: string, d: Date, fixedRand?: string) {
+    const custom = nmMode.value === 'custom';
+    const base = cleanName(custom ? $<HTMLInputElement>('nm-base').value.trim() || 'image' : orig.replace(/\.[^.]+$/, ''));
+    const suffix = cleanName($<HTMLInputElement>('suffix').value.trim());
+    const seq = custom && $<HTMLInputElement>('nm-seq').checked && total > 1 ? `-${idx + 1}` : '';
+    const st = stampText(d, $<HTMLSelectElement>('nm-stamp').value);
+    const rand = $<HTMLInputElement>('nm-rand').checked ? `_${fixedRand ?? String(Math.floor(Math.random() * 10000)).padStart(4, '0')}` : '';
+    return `${base}${suffix}${seq}${st ? '_' + st : ''}${rand}.${ext}`;
+  }
+  function updateNameExample() {
+    const f = files[0];
+    $('nm-example').textContent = `예시: ${buildName(f ? f.name : 'photo.jpg', 0, Math.max(files.length, 1), fmtEl.value, new Date(), '1234')}${$<HTMLInputElement>('nm-rand').checked ? ' (랜덤 숫자는 예시)' : ''}`;
+  }
+  nmMode.addEventListener('change', () => {
+    const custom = nmMode.value === 'custom';
+    ($('nm-base-w') as HTMLElement).hidden = !custom;
+    ($('nm-seq-w') as HTMLElement).hidden = !custom;
+    updateNameExample();
+  });
+  ['nm-base', 'suffix', 'nm-stamp', 'nm-rand', 'nm-seq'].forEach((id) => {
+    $(id).addEventListener('input', updateNameExample);
+    $(id).addEventListener('change', updateNameExample);
+  });
+  fmtEl.addEventListener('change', updateNameExample);
+  // ==NAME-END==
+
   async function convert(file: File) {
     const fmt = fmtEl.value;
     const d = await decode(file);
@@ -970,7 +1027,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     files.forEach(dropResult);
     renderFiles();
     await ensureFonts();
-    const suffix = $<HTMLInputElement>('suffix').value.trim();
+    const runDate = new Date(); // 한 번에 변환하는 파일은 같은 날짜·시간을 씁니다
     let ok = 0, fail = 0, srcSum = 0, outSum = 0, warn = '';
     const t0 = Date.now();
     for (let i = 0; i < files.length; i++) {
@@ -982,7 +1039,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
         const blob = await convert(f);
         const ext = EXT[blob.type] || fmtEl.value;
         if (blob.type !== MIME[fmtEl.value]) warn = '이 브라우저는 선택한 형식으로 저장하지 못해 PNG로 저장됐어요.';
-        const name = f.name.replace(/\.[^.]+$/, '') + suffix + '.' + ext;
+        const name = buildName(f.name, i, files.length, ext, runDate);
         resMap.set(f, { name, blob, url: URL.createObjectURL(blob) });
         srcSum += f.size;
         outSum += blob.size;
