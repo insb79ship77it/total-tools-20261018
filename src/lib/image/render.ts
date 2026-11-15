@@ -7,8 +7,16 @@ export type Sec = {
   shadow: boolean; shadowColor: string; shadowBlur: number; shadowDist: number;
   box: 'none' | 'box' | 'band'; boxColor: string; boxAlpha: number; boxRadius: number;
   padT: number; padB: number; padL: number; padR: number;
+  iconColor: string; iconScale: number;
   img: Img | null; imgSize: number; imgPos: 'left' | 'top' | 'bottom';
 };
+// 전체 배경에 깔리는 Material 아이콘 설정
+export type Bgi = { names: string; color: string; size: number; alpha: number; gap: number; angle: number; weight: number; layout: string };
+export const ICON_FAMILY = 'Material Symbols Outlined';
+// 글씨 굵기가 그대로 아이콘 굵기가 됩니다. (이 글꼴이 지원하는 100~700 범위로 맞춰요)
+export function iconFontStr(weight: number, px: number) {
+  return `${Math.max(100, Math.min(700, weight))} ${px}px "${ICON_FAMILY}"`;
+}
 export type Wm = { text: string; font: string; weight: number; color: string; size: number; alpha: number; angle: number; gap: number };
 
 export const FONTS: { id: string; name: string; css: string; faces?: Record<number, string> }[] = [
@@ -53,15 +61,17 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
 }
 
 // [[강조 박스]] , {{강조 글자색}} 을 조각으로 나눕니다.
-type Run = { t: string; k: 'n' | 'a' | 'b' };
+type Run = { t: string; k: 'n' | 'a' | 'b' | 'i'; col?: string };
 function parseRuns(line: string): Run[] {
   const runs: Run[] = [];
-  const re = /\[\[(.+?)\]\]|\{\{(.+?)\}\}/g;
+  const re = /\[\[(.+?)\]\]|\{\{(.+?)\}\}|\(\(([a-zA-Z0-9_]+)(?::(#[0-9a-fA-F]{3,8}))?\)\)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(line))) {
     if (m.index > last) runs.push({ t: line.slice(last, m.index), k: 'n' });
-    runs.push(m[1] !== undefined ? { t: m[1], k: 'b' } : { t: m[2], k: 'a' });
+    if (m[1] !== undefined) runs.push({ t: m[1], k: 'b' });
+    else if (m[2] !== undefined) runs.push({ t: m[2], k: 'a' });
+    else runs.push({ t: m[3].toLowerCase(), k: 'i', col: m[4] });
     last = re.lastIndex;
   }
   if (last < line.length) runs.push({ t: line.slice(last), k: 'n' });
@@ -93,14 +103,23 @@ function drawSection(ctx: CanvasRenderingContext2D, s: Sec, W: number, H: number
   const ls = s.ls * sc;
   const hlPad = fs * 0.25;
   ctx.save();
-  ctx.font = fontStr(s.font, s.weight, fs);
+  const textFont = fontStr(s.font, s.weight, fs);
+  const iconFont = iconFontStr(s.weight, fs * (s.iconScale / 100));
+  ctx.font = textFont;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
 
+  const runW = (r: Run) => {
+    if (r.k !== 'i') return measure(ctx, r.t, ls);
+    ctx.font = iconFont;
+    const w = ctx.measureText(r.t).width;
+    ctx.font = textFont;
+    return w;
+  };
   const rows = hasText
     ? lines.map((l) => {
         const runs = parseRuns(l);
-        const w = runs.reduce((a, r) => a + measure(ctx, r.t, ls) + (r.k === 'b' ? hlPad * 2 : 0), 0);
+        const w = runs.reduce((a, r) => a + runW(r) + (r.k === 'b' ? hlPad * 2 : 0), 0);
         return { runs, w };
       })
     : [];
@@ -167,25 +186,29 @@ function drawSection(ctx: CanvasRenderingContext2D, s: Sec, W: number, H: number
     const ly = ty + lh * (i + 0.5);
     let x = s.align === 'left' ? tx : s.align === 'right' ? tx + textW - row.w : tx + (textW - row.w) / 2;
     for (const r of row.runs) {
-      const rw = measure(ctx, r.t, ls);
+      const isI = r.k === 'i';
+      const rw = runW(r);
+      const rls = isI ? 0 : ls;
       if (r.k === 'b') {
         ctx.fillStyle = s.hl;
         ctx.fillRect(x, ly - lh * 0.46, rw + hlPad * 2, lh * 0.92);
         x += hlPad;
       }
+      if (isI) ctx.font = iconFont;
       if (useStroke) {
         ctx.lineWidth = s.strokeW * sc * 2;
         ctx.strokeStyle = s.strokeColor;
         ctx.lineJoin = 'round';
         ctx.miterLimit = 2;
         if (s.shadow) setShadow();
-        put(ctx, r.t, x, ly, ls, true);
+        put(ctx, r.t, x, ly, rls, true);
         clearShadow();
       }
-      ctx.fillStyle = r.k === 'a' ? s.accent : s.color;
+      ctx.fillStyle = isI ? r.col || s.iconColor : r.k === 'a' ? s.accent : s.color;
       if (s.shadow && !useStroke) setShadow();
-      put(ctx, r.t, x, ly, ls, false);
+      put(ctx, r.t, x, ly, rls, false);
       clearShadow();
+      if (isI) ctx.font = textFont;
       x += rw + (r.k === 'b' ? hlPad : 0);
     }
   });
@@ -213,7 +236,28 @@ function drawTile(ctx: CanvasRenderingContext2D, W: number, H: number, wm: Wm) {
   ctx.restore();
 }
 
-export function compose(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, W: number, H: number, bg: string | null, secs: Sec[], wm: Wm) {
+function drawIcons(ctx: CanvasRenderingContext2D, W: number, H: number, b: Bgi) {
+  const names = b.names.toLowerCase().split(/[\s,]+/).filter((n) => /^[a-z0-9_]+$/.test(n));
+  if (!names.length || b.alpha <= 0) return;
+  const fs = (b.size / 100) * W;
+  const step = Math.max(fs * 1.15, fs + (b.gap / 100) * W);
+  ctx.save();
+  ctx.globalAlpha = b.alpha / 100;
+  ctx.font = iconFontStr(b.weight, fs);
+  ctx.fillStyle = b.color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate((b.angle * Math.PI) / 180);
+  const R = Math.hypot(W, H) / 2 + step;
+  let row = 0, n = 0;
+  for (let y = -R; y <= R; y += step, row++) {
+    for (let x = -R + (b.layout === 'stagger' && row % 2 ? step / 2 : 0); x <= R; x += step) ctx.fillText(names[n++ % names.length], x, y);
+  }
+  ctx.restore();
+}
+
+export function compose(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, W: number, H: number, bg: string | null, secs: Sec[], wm: Wm, bgi?: Bgi) {
   ctx.save();
   ctx.clearRect(0, 0, W, H);
   if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); }
@@ -225,6 +269,7 @@ export function compose(ctx: CanvasRenderingContext2D, src: CanvasImageSource | 
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
+  if (bgi) drawIcons(ctx, W, H, bgi);
   drawTile(ctx, W, H, wm);
   for (const s of secs) drawSection(ctx, s, W, H);
   ctx.restore();
