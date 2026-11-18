@@ -123,6 +123,17 @@ import ToolPage from '../../layouts/ToolPage.astro';
       <div class="card panel">
         <h2 class="img-h">글씨 넣기</h2>
         <p class="hint">상단·중단·하단마다 글씨, 크기, 색, 굵기, 이미지(로고)를 따로 정해요. 글씨를 비워두면 그 영역은 나오지 않아요.</p>
+        <details class="img-det" id="preset-det">
+          <summary>프리셋 (설정을 텍스트로 복사 · 붙여넣기)</summary>
+          <p class="hint" style="margin:0 0 8px">상단·중단·하단의 글씨 내용과 아이콘, 색, 크기, 위치, 배경 박스, 그림자 등 지금 설정을 텍스트로 만들어요. 복사해 두었다가 붙여넣고 "적용"을 누르면 그대로 돌아와요. 반복 워터마크와 아이콘 배경 설정도 함께 들어가요. (이미지(로고) 파일은 텍스트로 담을 수 없어서 제외돼요.)</p>
+          <textarea class="field" id="preset-text" spellcheck="false" placeholder="여기에 프리셋 텍스트가 나와요. 다른 프리셋을 붙여넣고 아래 적용을 눌러도 돼요." style="min-height:120px;font-family:Consolas,monospace;font-size:.8rem"></textarea>
+          <div class="btns">
+            <button type="button" class="btn btn-primary btn-sm" id="preset-show">현재 설정 보기</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="preset-copy">복사</button>
+            <button type="button" class="btn btn-primary btn-sm" id="preset-apply">붙여넣은 프리셋 적용</button>
+          </div>
+          <p class="hint" id="preset-msg" style="margin:8px 0 12px"></p>
+        </details>
         <div id="sections"></div>
       </div>
 
@@ -282,12 +293,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
 </style>
 
 <script>
-  import { esc } from '../../lib/dom';
+  import { esc, copy } from '../../lib/dom';
   import { FONTS, fontStr, iconFontStr, iconName, iconList, compose } from '../../lib/image/render';
   import type { Img, Sec, Wm, Bgi } from '../../lib/image/render';
   import { PATTERNS, makeSvg } from '../../lib/image/patterns';
   import { CARD_STYLES, makeCardSvg } from '../../lib/image/cardnews';
   import { makeZip } from '../../lib/image/zip';
+  import { toPresetText, applyPreset } from '../../lib/image/preset';
 
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -529,6 +541,50 @@ import ToolPage from '../../layouts/ToolPage.astro';
   document.addEventListener('toggle', (e) => {
     const d = e.target as HTMLDetailsElement;
     if (d.classList?.contains('img-icondet') && d.open) loadIconFont();
+  }, true);
+
+  // ---------- 프리셋 (설정을 텍스트로 복사 · 붙여넣기) ----------
+  // 적용한 값을 화면의 입력칸에도 똑같이 반영합니다.
+  function syncControls() {
+    document.querySelectorAll<HTMLInputElement>('[data-s][data-k]').forEach((el) => {
+      const si = el.dataset.s!;
+      const k = el.dataset.k!;
+      const t = (si === 'w' ? wm : si === 'b' ? bgi : secs[Number(si)]) as any;
+      if (!t || !(k in t)) return;
+      if (el.type === 'checkbox') el.checked = !!t[k];
+      else el.value = String(t[k]);
+      const b = el.closest('label')?.querySelector('b');
+      if (b && el.type === 'range') b.textContent = el.value;
+      if (k === 'text') { delete el.dataset.caret; delete el.dataset.caretEnd; }
+    });
+  }
+  const presetBox = () => $<HTMLTextAreaElement>('preset-text');
+  const presetMsg = (text: string, ok = true) => {
+    const m = $('preset-msg');
+    m.textContent = text;
+    m.style.color = ok ? 'var(--green)' : 'var(--red)';
+  };
+  const showPreset = () => { presetBox().value = toPresetText(secs, wm, bgi); };
+  $('preset-show').addEventListener('click', () => { showPreset(); presetMsg('현재 설정을 가져왔어요. 복사해서 보관하세요.'); });
+  $('preset-copy').addEventListener('click', async (e) => {
+    if (!presetBox().value.trim()) showPreset();
+    await copy(presetBox().value, e.currentTarget as HTMLElement);
+  });
+  $('preset-apply').addEventListener('click', () => {
+    const range = (sid: string, k: string): [number, number] | null => {
+      const el = document.querySelector<HTMLInputElement>(`[data-s="${sid}"][data-k="${k}"]`);
+      return el && el.min !== '' && el.max !== '' ? [Number(el.min), Number(el.max)] : null;
+    };
+    const res = applyPreset(presetBox().value, secs, wm, bgi, range);
+    if (!res.ok) { presetMsg(res.error!, false); return; }
+    syncControls();
+    schedule();
+    presetMsg(`${res.count}개 설정을 적용했어요.`);
+  });
+  // 칸이 비어 있으면 처음 펼칠 때 현재 설정을 보여줍니다.
+  document.addEventListener('toggle', (e) => {
+    const d = e.target as HTMLDetailsElement;
+    if (d.id === 'preset-det' && d.open && !presetBox().value.trim()) showPreset();
   }, true);
 
   // ---------- 파일 목록 ----------
