@@ -273,12 +273,17 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-pvl .hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .img-dl { flex: none; border: 1px solid #cfe0ff; background: var(--soft); color: var(--blue); font: inherit; font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
   .img-dl:hover { background: #dbe7ff; }
+  .img-icondet { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px 12px; background: #fff; }
+  .img-icondet summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: var(--navy); font-size: 0.9rem; }
+  .img-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; max-height: 176px; overflow: auto; padding: 3px; }
+  .img-icons .mi { height: 42px; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--navy); cursor: pointer; font-family: 'Material Symbols Outlined'; font-size: 24px; font-weight: 400; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; font-feature-settings: 'liga'; }
+  .img-icons .mi:hover { border-color: var(--blue); color: var(--blue); }
   @media (max-width: 900px) { .img-layout { grid-template-columns: 1fr; } .img-side { position: static; order: -1; } }
 </style>
 
 <script>
   import { esc } from '../../lib/dom';
-  import { FONTS, fontStr, iconFontStr, compose } from '../../lib/image/render';
+  import { FONTS, fontStr, iconFontStr, iconName, iconList, compose } from '../../lib/image/render';
   import type { Img, Sec, Wm, Bgi } from '../../lib/image/render';
   import { PATTERNS, makeSvg } from '../../lib/image/patterns';
   import { CARD_STYLES, makeCardSvg } from '../../lib/image/cardnews';
@@ -369,12 +374,18 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const FONT_OPTS: [string, string][] = FONTS.map((f) => [f.id, f.name]);
   const WEIGHTS: [string, string][] = [['400', '가늘게'], ['500', '보통'], ['700', '굵게'], ['900', '아주 굵게']];
 
+  // 자주 쓰는 아이콘 (눌러서 글씨 칸에 넣는 버튼)
+  const ICON_NAMES = ['star', 'favorite', 'check', 'check_box', 'check_circle', 'done_all', 'thumb_up', 'lightbulb', 'bolt', 'local_fire_department', 'campaign', 'notifications', 'info', 'help', 'warning', 'error', 'arrow_forward', 'arrow_right_alt', 'trending_up', 'verified', 'workspace_premium', 'emoji_events', 'rocket_launch', 'savings', 'payments', 'shopping_cart', 'sell', 'redeem', 'schedule', 'calendar_month', 'location_on', 'call', 'mail', 'link', 'search', 'visibility', 'download', 'edit', 'home', 'person', 'group', 'school', 'menu_book', 'sentiment_satisfied', 'celebration', 'tips_and_updates', 'auto_awesome', 'shield', 'lock', 'play_circle', 'photo_camera', 'music_note', 'restaurant', 'flight', 'directions_car', 'pets', 'eco', 'wifi', 'cloud', 'sunny', 'diamond'];
+  const chips = ICON_NAMES.map((n) => `<button type="button" class="mi" data-ic="${n}" data-name="${n}" title="${n.replace(/_/g, ' ')}">${n}</button>`).join('');
+  const iconPicker = () => `<details class="img-icondet"><summary>아이콘 넣기 (눌러서 추가)</summary><input class="field" type="search" data-icsearch placeholder="이름으로 찾기 (예: star, check box)" style="margin-bottom:8px"><div class="img-icons">${chips}</div></details>`;
+
   const TITLES = ['상단 · 작은 글씨', '중단 · 큰 글씨', '하단 · 작은 글씨'];
   const SEC_CLS = ['g-net', 'g-blog', 'g-dev'];
   $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec ${SEC_CLS[i]}">
     <h3>${TITLES[i]}</h3>
     <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
-    <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색 · ((star)) 아이콘 · ((star:#ff4d4d)) 아이콘 색 지정 · <a href="https://fonts.google.com/icons" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600">아이콘 이름 찾기</a></p>
+    <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색 · ((star)) 아이콘 · ((star:#ff4d4d)) 아이콘 색 지정 · 이름은 Check box처럼 띄어써도 돼요 · <a href="https://fonts.google.com/icons" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600">아이콘 이름 찾기</a></p>
+    ${iconPicker()}
     <details><summary>글자 설정 (글꼴 · 크기 · 위치)</summary><div class="img-grid">
       ${sel(i, 'font', '글꼴', FONT_OPTS, s.font)}${sel(i, 'weight', '굵기', WEIGHTS, s.weight)}
       ${clr(i, 'color', '글자색', s.color)}${sel(i, 'align', '정렬', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']], s.align)}
@@ -412,7 +423,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
     ${rng('w', 'gap', '간격', 0, 30, 0.5, wm.gap, '%')}
   </div>`;
   $('bgi-panel').innerHTML = `<div class="img-grid">
-    <label class="img-sel" style="grid-column:1/-1"><span>아이콘 이름</span><input class="field" type="text" data-s="b" data-k="names" placeholder="비워두면 사용하지 않아요 (예: star, favorite)"></label>
+    <label class="img-sel" style="grid-column:1/-1"><span>아이콘 이름 (쉼표로 구분, 띄어쓰기 이름도 돼요)</span><input class="field" type="text" data-s="b" data-k="names" placeholder="비워두면 사용하지 않아요 (예: star, Check box, favorite)"></label>
+    <div style="grid-column:1/-1">${iconPicker()}</div>
     ${clr('b', 'color', '아이콘 색', bgi.color)}${sel('b', 'weight', '굵기', [['300', '가늘게'], ['400', '보통'], ['700', '굵게']], bgi.weight)}
     ${rng('b', 'size', '크기', 1, 25, 0.5, bgi.size, '%')}${rng('b', 'alpha', '투명도(진하기)', 0, 100, 1, bgi.alpha, '%')}
     ${rng('b', 'gap', '간격', 0, 40, 0.5, bgi.gap, '%')}${rng('b', 'angle', '기울기', -60, 60, 1, bgi.angle, '°')}
@@ -475,6 +487,49 @@ import ToolPage from '../../layouts/ToolPage.astro';
     document.querySelector(`[data-sname="${i}"]`)!.textContent = '';
     schedule();
   });
+
+  // ---------- 아이콘 넣기 버튼 ----------
+  // 글씨 칸을 떠나도 마지막 커서 위치를 기억해 둡니다. (버튼을 누르면 커서가 칸에서 빠지기 때문)
+  const trackCaret = (e: Event) => {
+    const t = e.target as HTMLTextAreaElement;
+    if (t.tagName === 'TEXTAREA' && t.dataset.k === 'text') { t.dataset.caret = String(t.selectionStart); t.dataset.caretEnd = String(t.selectionEnd); }
+  };
+  ['keyup', 'click', 'input', 'select', 'focusout'].forEach((ev) => $('sections').addEventListener(ev, trackCaret));
+
+  document.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button.mi[data-ic]');
+    if (!b) return;
+    const name = b.dataset.ic!;
+    const sec = b.closest('.img-sec');
+    if (sec) {
+      // 글씨 칸의 커서 위치에 ((이름)) 을 넣습니다. (한 번도 누른 적 없으면 맨 끝에 붙여요)
+      const ta = sec.querySelector<HTMLTextAreaElement>('textarea[data-k="text"]')!;
+      const token = `((${name}))`;
+      const a = ta.dataset.caret !== undefined ? Math.min(Number(ta.dataset.caret), ta.value.length) : ta.value.length;
+      const z = ta.dataset.caretEnd !== undefined ? Math.min(Math.max(Number(ta.dataset.caretEnd), a), ta.value.length) : a;
+      ta.setRangeText(token, a, z, 'end');
+      ta.dataset.caret = ta.dataset.caretEnd = String(a + token.length);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      // 아이콘 배경: 이름 칸 뒤에 쉼표로 이어 붙입니다.
+      const inp = $('bgi-panel').querySelector<HTMLInputElement>('input[data-k="names"]')!;
+      const cur = inp.value.trim().replace(/,\s*$/, '');
+      const nm = name.replace(/_/g, ' ');
+      inp.value = cur ? `${cur}, ${nm}` : nm;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  document.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset?.icsearch === undefined) return;
+    const q = iconName(el.value);
+    el.closest('.img-icondet')!.querySelectorAll<HTMLElement>('button.mi').forEach((c) => (c.hidden = !!q && !c.dataset.name!.includes(q)));
+  });
+  // 아이콘 목록을 처음 펼칠 때 아이콘 글꼴을 불러옵니다.
+  document.addEventListener('toggle', (e) => {
+    const d = e.target as HTMLDetailsElement;
+    if (d.classList?.contains('img-icondet') && d.open) loadIconFont();
+  }, true);
 
   // ---------- 파일 목록 ----------
   let files: File[] = [];
@@ -672,8 +727,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
     if (wm.text.trim()) want(wm.font, wm.weight, wm.text);
     // Material 아이콘을 쓰는 경우에만 아이콘 글꼴을 불러옵니다.
     const names = [
-      ...secs.flatMap((x) => [...x.text.matchAll(/\(\(([a-zA-Z0-9_]+)(?::#[0-9a-fA-F]{3,8})?\)\)/g)].map((m) => m[1].toLowerCase())),
-      ...bgi.names.toLowerCase().split(/[\s,]+/).filter(Boolean),
+      ...secs.flatMap((x) => [...x.text.matchAll(/\(\(([a-zA-Z0-9_ \-]+?)(?::#[0-9a-fA-F]{3,8})?\)\)/g)].map((m) => iconName(m[1]))),
+      ...iconList(bgi.names),
     ];
     if (names.length) {
       await loadIconFont();

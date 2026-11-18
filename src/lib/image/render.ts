@@ -17,6 +17,10 @@ export const ICON_FAMILY = 'Material Symbols Outlined';
 export function iconFontStr(weight: number, px: number) {
   return `${Math.max(100, Math.min(700, weight))} ${px}px "${ICON_FAMILY}"`;
 }
+// 아이콘 이름 정리: "Check box" / "check-box" → check_box (구글 아이콘 사이트의 표기를 그대로 써도 돼요)
+export const iconName = (n: string) => n.trim().toLowerCase().replace(/[\s\-]+/g, '_');
+// 쉼표나 줄바꿈으로 나눈 아이콘 이름 목록 (이름 안의 띄어쓰기는 이름의 일부로 봅니다)
+export const iconList = (s: string) => s.split(/[,\n]+/).map(iconName).filter((n) => /^[a-z0-9_]+$/.test(n));
 export type Wm = { text: string; font: string; weight: number; color: string; size: number; alpha: number; angle: number; gap: number };
 
 export const FONTS: { id: string; name: string; css: string; faces?: Record<number, string> }[] = [
@@ -64,14 +68,14 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
 type Run = { t: string; k: 'n' | 'a' | 'b' | 'i'; col?: string };
 function parseRuns(line: string): Run[] {
   const runs: Run[] = [];
-  const re = /\[\[(.+?)\]\]|\{\{(.+?)\}\}|\(\(([a-zA-Z0-9_]+)(?::(#[0-9a-fA-F]{3,8}))?\)\)/g;
+  const re = /\[\[(.+?)\]\]|\{\{(.+?)\}\}|\(\(([a-zA-Z0-9_ \-]+?)(?::(#[0-9a-fA-F]{3,8}))?\)\)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(line))) {
     if (m.index > last) runs.push({ t: line.slice(last, m.index), k: 'n' });
     if (m[1] !== undefined) runs.push({ t: m[1], k: 'b' });
     else if (m[2] !== undefined) runs.push({ t: m[2], k: 'a' });
-    else runs.push({ t: m[3].toLowerCase(), k: 'i', col: m[4] });
+    else runs.push({ t: iconName(m[3]), k: 'i', col: m[4] });
     last = re.lastIndex;
   }
   if (last < line.length) runs.push({ t: line.slice(last), k: 'n' });
@@ -237,7 +241,7 @@ function drawTile(ctx: CanvasRenderingContext2D, W: number, H: number, wm: Wm) {
 }
 
 function drawIcons(ctx: CanvasRenderingContext2D, W: number, H: number, b: Bgi) {
-  const names = b.names.toLowerCase().split(/[\s,]+/).filter((n) => /^[a-z0-9_]+$/.test(n));
+  const names = iconList(b.names);
   if (!names.length || b.alpha <= 0) return;
   const fs = (b.size / 100) * W;
   const step = Math.max(fs * 1.15, fs + (b.gap / 100) * W);
