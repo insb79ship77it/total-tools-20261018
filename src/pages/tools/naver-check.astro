@@ -1,33 +1,703 @@
-What this means for your account
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="네이버 블로그 누락 체크" description="네이버 블로그 최근 글이 통합검색과 블로그탭에 노출되는지, 텍스트인지 이미지인지 확인합니다.">
+  <div class="wrap">
+  <section class="page-head head-row">
+    <div>
+      <h1>네이버 블로그 누락 체크</h1>
+      <p>최근 글의 제목을 네이버에서 검색해 통합검색과 블로그탭 노출 여부를 확인합니다.</p>
+    </div>
+    <a class="logout" href="/api/logout">로그아웃</a>
+  </section>
 
-Observability is moving to its own subscription. If your account is on:
+  <div class="seg" id="tabs">
+    <button type="button" class="on" data-tab="single">단일 체크</button>
+    <button type="button" data-tab="multi">멀티 체크</button>
+    <div class="tab-search" id="q-wrap">
+      <span class="hint" id="q-count"></span>
+      <input id="q" class="field" type="search" placeholder="제목으로 검색" aria-label="결과에서 제목 검색" autocomplete="off" />
+    </div>
+    <div class="tab-search" id="mq-wrap" hidden>
+      <span class="hint" id="mq-count"></span>
+      <input id="mq" class="field" type="search" placeholder="제목·블로그로 검색" aria-label="멀티 체크 결과에서 검색" autocomplete="off" />
+    </div>
+  </div>
 
-Workers Paid: Your account will automatically receive an Observability Paid subscription. Starting December 1, usage beyond the included allowances will be billed under the new subscription at the rates below.
-Enterprise: Your existing contract terms apply until renewal, when the new pricing takes effect.
-No Workers Paid plan or Enterprise contract: Your account stays on Observability Free, with no Observability charges. Ingestion pauses when the daily limit is reached and resumes when it resets.
-New pricing
+  <div id="tab-single">
+  <div class="card panel">
+    <div class="row">
+      <input id="blogId" class="field" type="text" placeholder="블로그 아이디 또는 주소 (예: myblogid)" aria-label="네이버 블로그 아이디" autocomplete="off" />
+      <button id="go" class="btn btn-primary" type="button">조회하기</button>
+    </div>
+    <p class="err" id="error" hidden></p>
+  </div>
 
-Usage will be measured by GB ingested and GB-month stored, rather than the number of events.
+  <div class="card" id="result" hidden>
+    <div class="res-head">
+      <div>
+        <h2 id="blogTitle">-</h2>
+        <a id="blogUrl" href="#" target="_blank" rel="noopener">-</a>
+      </div>
+      <div class="sum">
+        <button type="button" class="badge b-gray clickable" id="s-total" data-sf="all" title="전체 보기">전체 0</button>
+        <button type="button" class="badge b-green clickable" id="s-ok" data-sf="ok" title="노출된 글만 보기 · 괄호는 메인·블로그 각각의 노출 수">노출 0</button>
+        <button type="button" class="badge b-red clickable" id="s-no" data-sf="no" title="메인·블로그 둘 다 없는 글만 보기 · 괄호는 각각의 미노출 수">누락 0</button>
+        <button type="button" class="badge b-amber clickable" id="s-err" data-sf="err" title="확인 실패한 글만 보기">확인 실패 0</button>
+      </div>
+    </div>
+    <div class="runbar">
+      <span class="dot idle" id="dot"></span>
+      <span class="grow" id="status">대기 중</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="stop" hidden>중지</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="retry" hidden>이 페이지 실패 항목 다시 확인</button>
+    </div>
+    <div class="prog"><div id="prog"></div></div>
+    <div class="tbl-wrap">
+      <table class="posts">
+        <thead>
+          <tr><th class="num">번호</th><th>글 제목</th><th>발행일</th><th class="c">통합검색</th><th class="c">블로그탭</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pager"></div>
+  </div>
 
-Plan	Included ingestion	Included storage / retention	Additional usage
-Free	0.5 GB per day	Seven-day retention included	Not available
-Paid	50 GB per billing cycle	10 GB-month per billing cycle	$0.25 per additional GB ingested;
-$0.10 per additional GB-month stored
-Ingestion and storage charges apply only to data ingested on or after December 1, 2026. Earlier usage will not be charged retroactively.
+  </div>
 
-Covered datasets
+  <div id="tab-multi" hidden>
+    <div class="card panel">
+      <label class="lbl" for="m-ids">블로그 아이디 (한 줄에 하나, 최대 10개)</label>
+      <textarea id="m-ids" class="field" style="min-height:140px" placeholder="blogid1&#10;blogid2&#10;https://blog.naver.com/blogid3"></textarea>
+      <div class="row mt" style="align-items:center">
+        <label class="lbl" for="m-count" style="margin:0;white-space:nowrap">블로그당 확인할 최근 글</label>
+        <select id="m-count" class="field" style="flex:none;width:110px">
+          <option value="3">3개</option>
+          <option value="5" selected>5개</option>
+          <option value="10">10개</option>
+          <option value="15">15개</option>
+          <option value="20">20개</option>
+        </select>
+        <button id="m-go" class="btn btn-primary" type="button">멀티 체크 시작</button>
+      </div>
+      <p class="err" id="m-error" hidden></p>
+    </div>
 
-Your account’s included allowances are shared across:
+    <div class="card" id="m-result" hidden style="margin-top:24px;overflow:hidden">
+      <div class="res-head">
+        <h2>멀티 체크 결과</h2>
+        <div class="sum">
+          <button type="button" class="badge b-gray clickable" id="m-s-blogs" data-mf="all" title="전체 보기">블로그 0</button>
+          <button type="button" class="badge b-green clickable" id="m-s-ok" data-mf="ok" title="노출된 글만 보기 · 괄호는 메인·블로그 각각의 노출 수">노출 0</button>
+          <button type="button" class="badge b-red clickable" id="m-s-no" data-mf="no" title="메인·블로그 둘 다 없는 글만 보기 · 괄호는 각각의 미노출 수">누락 0</button>
+          <button type="button" class="badge b-amber clickable" id="m-s-err" data-mf="err" title="확인 실패한 글만 보기">확인 실패 0</button>
+        </div>
+      </div>
+      <div class="runbar">
+        <span class="dot idle" id="m-dot"></span>
+        <span class="grow" id="m-status">대기 중</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="m-stop" hidden>중지</button>
+      </div>
+      <div class="prog"><div id="m-prog"></div></div>
+      <div class="tbl-wrap">
+        <table class="posts mtable">
+          <thead>
+            <tr><th class="num">번호</th><th>블로그</th><th>진행</th><th class="c">노출</th><th class="c">누락</th><th class="c">확인 실패</th><th class="c">상세</th></tr>
+          </thead>
+          <tbody id="m-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-Cloudflare Traces
-Workers Logs and Workers Traces
-Containers logs
-R2 Data Access Logs
-AI Gateway logs
-Issues
-Any new datasets added to Cloudflare Observability that you enable will also use this pricing model.
+  <div class="toast" id="toast" role="status" hidden></div>
 
-For questions, contact Support or your account team.
+  <section class="guide">
+    <h2>결과 보는 법</h2>
+    <h3>상태 색깔</h3>
+    <p>초록은 검색 결과에서 글이 보인다는 뜻이고 텍스트 또는 이미지로 노출됐는지도 함께 적어요. 빨강은 검색 결과에 없는 누락, 주황은 네이버가 응답하지 않아 확인하지 못한 경우입니다. 상태 버튼을 누르면 해당 검색 결과가 새 창으로 열려요.</p>
+    <h3>천천히 확인하는 이유</h3>
+    <p>네이버에 요청이 한꺼번에 몰리면 응답을 막아서 확인 실패가 늘어납니다. 그래서 한 페이지(10개)씩, 글을 하나씩 간격을 두고 확인하고 실패한 글은 자동으로 다시 시도해요. 페이지가 끝나면 결과를 한꺼번에 보여주고, 다른 페이지 번호를 누르면 그때 그 페이지를 확인합니다.</p>
+    <h3>멀티 체크</h3>
+    <p>여러 블로그의 최근 글이 검색에 노출되는지 한 번에 확인합니다. 블로그 아이디를 한 줄에 하나씩 넣고 블로그당 확인할 글 수를 고르세요. 블로그마다 노출·누락 개수가 나오고, 상세 보기를 누르면 글별 결과를 볼 수 있어요. 글이 많을수록 시간이 걸리니 3~5개로 시작해 보세요.</p>
+    <h3>참고하세요</h3>
+    <p>발행 직후의 글은 검색에 반영되기까지 시간이 걸려 누락으로 보일 수 있습니다. 최근 50개 글까지 확인하며, 네이버 화면 구조가 바뀌면 결과가 달라질 수 있습니다.</p>
+  </section>
+  </div>
+</Base>
 
-Thank you,
-Cloudflare Observability Team
+<style is:global>
+  .badge.clickable { border: 0; font-family: inherit; cursor: pointer; transition: box-shadow 0.15s; }
+  .badge.clickable:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08); }
+  .badge.clickable.active { box-shadow: 0 0 0 2px currentColor; }
+  .btn-open, .btn-fold { font: inherit; font-size: 0.82rem; font-weight: 700; padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+  .btn-open { background: var(--soft); color: var(--blue); border: 1px solid #cfe0ff; }
+  .btn-open:hover { background: #dbe7ff; }
+  .btn-fold { background: #f1f3f7; color: #6a768d; border: 1px solid #dfe4ee; }
+  .btn-fold:hover { background: #e7eaf0; }
+  /* 멀티 체크: 블로그마다 둥근 박스로 묶습니다 (글 목록을 펼치면 같은 박스 안에 들어가요) */
+  table.mtable { border-collapse: separate; border-spacing: 0; }
+  table.mtable td { border-top: 0; }
+  table.mtable tr.gap td { height: 12px; padding: 0; background: transparent; border: 0; }
+  table.mtable tr.mg td { background: #fff; border: 0 solid #d8e2f3; }
+  table.mtable tr.mg td:first-child { border-left-width: 1px; }
+  table.mtable tr.mg td:last-child { border-right-width: 1px; }
+  table.mtable tr.mg-f td { border-top-width: 1px; }
+  table.mtable tr.mg-l td { border-bottom-width: 1px; }
+  table.mtable tr.mg-f td:first-child { border-top-left-radius: 16px; }
+  table.mtable tr.mg-f td:last-child { border-top-right-radius: 16px; }
+  table.mtable tr.mg-l td:first-child { border-bottom-left-radius: 16px; }
+  table.mtable tr.mg-l td:last-child { border-bottom-right-radius: 16px; }
+  table.mtable tr.mg.open td, table.mtable tr.sub td { background: #f6f9ff; border-color: #b9ccf5; }
+  table.mtable tr.sub td { padding: 0 24px 16px 0; }
+  .sublist { margin: 0 0 0 64px; padding-left: 18px; border-left: 2px solid #cfe0ff; }
+  .brk { display: block; font-size: 0.72rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
+</style>
+
+<style>
+  .head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .logout { margin-top: 12px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+  .logout:hover { color: var(--blue); border-color: #b9ccf5; }
+  .tab-search { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .tab-search .field { width: 240px; max-width: 100%; height: 40px; padding: 8px 14px; }
+  .tab-search .hint { margin: 0; white-space: nowrap; }
+</style>
+
+<script>
+  type Hit = 'text' | 'image' | 'none' | 'error' | null;
+  type Post = { title: string; logNo: string; pubDate: string; main: Hit; blog: Hit; note: string; busy?: boolean };
+  type PState = 'queued' | 'running' | 'done';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const PAGE = 10;
+  const DELAY = 1000;   // 글과 글 사이 기본 대기(ms)
+  const JITTER = 700;   // 여기에 0~700ms를 더 랜덤으로 붙입니다
+  const RETRIES = 3;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const loginUrl = () => '/login/?next=' + encodeURIComponent(location.pathname);
+
+  let posts: Post[] = [];
+  let page = 1;
+  let blogId = '';
+  let query = '';
+  let sfilter: '' | 'ok' | 'no' | 'err' = '';
+  let pageState: Record<number, PState> = {};
+  let queue: number[] = [];
+  let working = false;
+  let mrunning = false;
+  let stopped = false;
+  let curPage = 0, curDone = 0, curTotal = 0, startedAt = 0;
+  let phase: 'check' | 'rest' | 'retry' = 'check';
+  let toastTimer = 0;
+
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]!);
+
+  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, '');
+  const found = (h: Hit) => h === 'text' || h === 'image';
+  const state = (p: Post) =>
+    found(p.main) || found(p.blog) ? 'ok'
+    : p.main === null || p.blog === null ? 'wait'
+    : p.main === 'error' || p.blog === 'error' ? 'err'
+    : 'no';
+
+  // 메인(통합검색)과 블로그탭을 따로 센 숫자
+  const tally = (list: Post[]) => ({
+    mOk: list.filter((p) => found(p.main)).length,
+    mNo: list.filter((p) => p.main === 'none').length,
+    bOk: list.filter((p) => found(p.blog)).length,
+    bNo: list.filter((p) => p.blog === 'none').length,
+  });
+
+  const searchUrl = (title: string, tab: boolean) =>
+    `https://search.naver.com/search.naver?${tab ? 'ssc=tab.blog.all&' : ''}query=${encodeURIComponent(`"${title}"`)}`;
+
+  const parseId = (v: string) => {
+    const m = v.trim().match(/blog\.naver\.com\/([A-Za-z0-9_-]+)/i);
+    return (m ? m[1] : v.trim()).replace(/^@/, '');
+  };
+
+  // 발행일: "3일 전" + 실제 날짜
+  const kstDay = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const dayNum = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+  function when(s: string): [string, string] {
+    const d = new Date(s);
+    if (isNaN(+d)) return ['', s];
+    const n = dayNum(kstDay(new Date())) - dayNum(kstDay(d));
+    const ago = n <= 0 ? '오늘' : n < 30 ? `${n}일 전` : n < 365 ? `${Math.floor(n / 30)}개월 전` : `${Math.floor(n / 365)}년 전`;
+    const abs = d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    return [ago, abs];
+  }
+
+  // 글 하나를 확인할 때마다 그 줄의 결과를 바로 보여줍니다.
+  // named=true(멀티 체크의 상세 목록)이면 칸 제목이 없으므로 "메인 / 블로그"를 글자에 붙입니다.
+  function cell(h: Hit, p: Post, tab: boolean, named = false) {
+    const pre = named ? (tab ? '블로그 ' : '메인 ') : '';
+    if (h === null) {
+      return p.busy ? `<span class="st st-busy">${pre}확인 중…</span>` : `<span class="st st-wait">${pre}대기</span>`;
+    }
+    const [cls, label] =
+      h === 'text' ? ['st-ok', named ? `${pre}노출` : '텍스트 노출']
+      : h === 'image' ? ['st-ok', named ? `${pre}노출 · 이미지` : '이미지 노출']
+      : h === 'none' ? ['st-no', `${pre}미노출`]
+      : ['st-err', `${pre}확인 실패`];
+    const tip = h === 'error' && p.note ? ` title="${esc(p.note)}"` : '';
+    return `<a class="st ${cls}" href="${searchUrl(p.title, tab)}" target="_blank" rel="noopener"${tip}>${label}</a>`;
+  }
+
+  function render() {
+    const shown = posts.filter((p) => state(p) !== 'wait');
+    $('s-total').textContent = `전체 ${posts.length}`;
+    const t = tally(shown);
+    $('s-ok').textContent = `노출 ${shown.filter((p) => state(p) === 'ok').length} (메인 ${t.mOk} · 블로그 ${t.bOk})`;
+    $('s-no').textContent = `누락 ${shown.filter((p) => state(p) === 'no').length} (메인 ${t.mNo} · 블로그 ${t.bNo})`;
+    $('s-err').textContent = `확인 실패 ${shown.filter((p) => state(p) === 'err').length}`;
+    (['ok', 'no', 'err'] as const).forEach((k) => $('s-' + k).classList.toggle('active', sfilter === k));
+
+    // 검색어가 있으면 현재 결과에서 제목이 맞는 글만 보여줍니다. (번호는 원래 번호 그대로)
+    const q = norm(query);
+    const list = posts
+      .map((p, i) => ({ p, no: i + 1 }))
+      .filter((x) => (!q || norm(x.p.title).includes(q)) && (!sfilter || state(x.p) === sfilter));
+    const pages = Math.max(1, Math.ceil(list.length / PAGE));
+    if (page > pages) page = pages;
+    const start = (page - 1) * PAGE;
+    const slice = list.slice(start, start + PAGE);
+    const waiting = list.filter((x) => state(x.p) === 'wait').length;
+    const tag = ({ ok: '노출', no: '누락', err: '확인 실패' } as Record<string, string>)[sfilter] || '';
+    $('q-count').textContent = q || sfilter ? `${tag ? tag + ' ' : ''}${q ? '검색 ' : ''}결과 ${list.length}개${waiting ? ` (확인 전 ${waiting}개)` : ''}` : '';
+
+    $('rows').innerHTML = slice.length
+      ? slice.map(({ p, no }) => {
+          const [ago, abs] = when(p.pubDate);
+          return `<tr>
+            <td class="num">${no}</td>
+            <td class="title-cell"><a href="https://blog.naver.com/${esc(blogId)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a></td>
+            <td class="date-cell"><span>${esc(abs)}</span><b>${esc(ago)}</b></td>
+            <td class="c">${cell(p.main, p, false)}</td>
+            <td class="c">${cell(p.blog, p, true)}</td></tr>`;
+        }).join('')
+      : `<tr><td colspan="5" style="text-align:center;color:#6f7d97">${q || sfilter ? '조건에 맞는 글이 없습니다.' : '조회된 글이 없습니다.'}</td></tr>`;
+
+    $('pager').innerHTML = pages > 1
+      ? Array.from({ length: pages }, (_, i) => {
+          const n = i + 1;
+          const cls = [n === page ? 'on' : '', !q && !sfilter && pageState[n] === 'done' ? 'done' : ''].join(' ').trim();
+          return `<button type="button" data-p="${n}" class="${cls}">${n}</button>`;
+        }).join('')
+      : '';
+
+    ($('stop') as HTMLElement).hidden = !working;
+    ($('retry') as HTMLElement).hidden = !(
+      !q && !sfilter && pageState[page] === 'done' && !working && slice.some(({ p }) => state(p) === 'err' || state(p) === 'wait')
+    );
+  }
+
+  function setStatus(text: string, mode: 'run' | 'wait' | 'idle') {
+    $('status').textContent = text;
+    $('dot').className = 'dot' + (mode === 'idle' ? ' idle' : mode === 'wait' ? ' slow' : '');
+  }
+
+  function toast(msg: string) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => (t.hidden = true), 5000);
+  }
+
+  // 진행 상황: "n페이지 확인 중 · 3/10번째 · 소요시간 12초 진행중"
+  function tick() {
+    if (!working || !curPage) return;
+    if (stopped) { setStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); return; }
+    const sec = Math.floor((Date.now() - startedAt) / 1000);
+    const n = Math.min(curDone + 1, curTotal);
+    const extra = phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
+    setStatus(`${curPage}페이지 확인 중 · ${n}/${curTotal}번째 · 소요시간 ${sec}초 진행중${extra}`, phase === 'retry' ? 'wait' : 'run');
+  }
+  setInterval(tick, 500);
+
+  async function checkOne(p: Post, bid = blogId) {
+    let main: Hit = null;
+    let blog: Hit = null;
+    let note = '';
+    for (let a = 0; a < RETRIES; a++) {
+      try {
+        const qs = new URLSearchParams({ blogId: bid, logNo: p.logNo, title: p.title });
+        const r = await fetch(`/api/naver-check?${qs}`);
+        if (r.status === 401) { location.href = loginUrl(); throw new Error('로그인이 필요합니다.'); }
+        if (!r.ok) throw new Error(`서버 오류 (HTTP ${r.status})`);
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        if (main === null || main === 'error') { main = d.main || 'error'; if (main === 'error') note = d.mainNote || note; }
+        if (blog === null || blog === 'error') { blog = d.blog || 'error'; if (blog === 'error') note = d.blogNote || note; }
+      } catch (e) {
+        note = (e as Error).message || '요청에 실패했어요';
+        if (main === null) main = 'error';
+        if (blog === null) blog = 'error';
+      }
+      if (main !== 'error' && blog !== 'error') { note = ''; break; }
+      if (a === RETRIES - 1) break;
+      phase = 'retry';
+      await sleep(2500 * (a + 1));
+    }
+    p.main = main;
+    p.blog = blog;
+    p.note = note;
+    phase = 'check';
+  }
+
+  async function runPage(n: number, onlyFailed = false) {
+    const from = (n - 1) * PAGE;
+    const to = Math.min(n * PAGE, posts.length);
+    const idx: number[] = [];
+    for (let i = from; i < to; i++) if (!onlyFailed || state(posts[i]) === 'err' || state(posts[i]) === 'wait') idx.push(i);
+    if (onlyFailed) idx.forEach((i) => { posts[i].main = null; posts[i].blog = null; posts[i].note = ''; });
+
+    stopped = false;
+    pageState[n] = 'running';
+    curPage = n; curDone = 0; curTotal = idx.length; startedAt = Date.now(); phase = 'check';
+    render();
+    tick();
+
+    for (let k = 0; k < idx.length; k++) {
+      if (stopped) break;
+      curDone = k;
+      phase = 'check';
+      posts[idx[k]].busy = true;
+      render();
+      tick();
+      await checkOne(posts[idx[k]]);
+      posts[idx[k]].busy = false;
+      curDone = k + 1;
+      render();
+      if (k < idx.length - 1 && !stopped) {
+        phase = 'rest';
+        tick();
+        await sleep(DELAY + Math.random() * JITTER);
+      }
+    }
+
+    pageState[n] = 'done';
+    const sec = Math.round((Date.now() - startedAt) / 1000);
+    const sl = posts.slice(from, to);
+    const count = (k: string) => sl.filter((p) => state(p) === k).length;
+    const msg = `${n}페이지 확인${stopped ? '을 중지했어요' : ' 완료'} · 소요시간 ${sec}초 (노출 ${count('ok')} · 누락 ${count('no')} · 확인 실패 ${count('err')})`;
+    toast(msg);
+    if (queue.length === 0) setStatus(msg, 'idle');
+    render();
+  }
+
+  function setBusy(b: boolean) {
+    ($('go') as HTMLButtonElement).disabled = b;
+  }
+
+  async function pump() {
+    if (working || mrunning) return;
+    working = true;
+    setBusy(true);
+    try {
+      while (queue.length) await runPage(queue.shift()!);
+    } finally {
+      working = false;
+      setBusy(false);
+      render();
+    }
+  }
+
+  function enqueue(n: number) {
+    if (pageState[n]) return;
+    pageState[n] = 'queued';
+    queue.push(n);
+    render();
+    pump();
+  }
+
+  async function run() {
+    if (working || mrunning) return;
+    const err = $('error');
+    err.hidden = true;
+    blogId = parseId(($('blogId') as HTMLInputElement).value);
+    if (!blogId) { err.textContent = '네이버 블로그 아이디를 입력하세요.'; err.hidden = false; return; }
+    try { localStorage.setItem('naver_blog_id', blogId); } catch {}
+
+    const btn = $('go') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = '조회 중…';
+    try {
+      const res = await fetch(`/api/naver-posts?blogId=${encodeURIComponent(blogId)}`);
+      if (res.status === 401) { location.href = loginUrl(); throw new Error('로그인이 필요합니다.'); }
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
+
+      posts = d.posts.map((p: Omit<Post, 'main' | 'blog' | 'note'>) => ({ ...p, main: null, blog: null, note: '' }));
+      pageState = {};
+      queue = [];
+      page = 1;
+      query = '';
+      sfilter = '';
+      ($('q') as HTMLInputElement).value = '';
+      $('blogTitle').textContent = d.blogTitle;
+      const a = $('blogUrl') as HTMLAnchorElement;
+      a.textContent = a.href = `https://blog.naver.com/${blogId}`;
+      $('result').hidden = false;
+      setStatus('대기 중', 'idle');
+      btn.textContent = '다시 조회';
+      enqueue(1);
+    } catch (e) {
+      err.textContent = (e as Error).message || '조회에 실패했습니다.';
+      err.hidden = false;
+      btn.textContent = '조회하기';
+    }
+    btn.disabled = working;
+  }
+
+  $('go').addEventListener('click', run);
+  $('blogId').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') run(); });
+  $('stop').addEventListener('click', () => {
+    stopped = true;
+    queue.forEach((n) => delete pageState[n]);
+    queue = [];
+    setStatus('현재 글까지만 확인하고 멈추는 중…', 'wait');
+  });
+  $('retry').addEventListener('click', async () => {
+    if (working || mrunning) return;
+    working = true;
+    setBusy(true);
+    try { await runPage(page, true); } finally { working = false; setBusy(false); }
+    render();
+    pump();
+  });
+  document.querySelector('#result .sum')!.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-sf]');
+    if (!b) return;
+    const v = b.dataset.sf!;
+    sfilter = v === 'all' || sfilter === v ? '' : (v as 'ok' | 'no' | 'err');
+    page = 1;
+    render();
+  });
+  $('q').addEventListener('input', () => {
+    query = ($('q') as HTMLInputElement).value.trim();
+    page = 1;
+    render();
+  });
+  $('pager').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button');
+    if (!b) return;
+    page = Number(b.dataset.p);
+    if (!query && !sfilter && !pageState[page]) enqueue(page);
+    else render();
+  });
+  try {
+    const saved = localStorage.getItem('naver_blog_id');
+    if (saved) ($('blogId') as HTMLInputElement).value = saved;
+  } catch {}
+
+  // ---------- 멀티 체크 ----------
+  type MBlog = { id: string; title: string; posts: Post[]; status: 'wait' | 'load' | 'run' | 'done' | 'stop' | 'error'; error: string };
+  let mblogs: MBlog[] = [];
+  let mstop = false;
+  let mStart = 0, mCur = '', mBlogNo = 0, mPostNo = 0, mPostTotal = 0;
+  const mOpen = new Set<string>();
+  let mquery = '';
+  let mfilter: '' | 'ok' | 'no' | 'err' = '';
+
+  function msetStatus(text: string, mode: 'run' | 'wait' | 'idle') {
+    $('m-status').textContent = text;
+    $('m-dot').className = 'dot' + (mode === 'idle' ? ' idle' : mode === 'wait' ? ' slow' : '');
+  }
+
+  function mtick() {
+    if (!mrunning) return;
+    const sec = Math.floor((Date.now() - mStart) / 1000);
+    const extra = phase === 'retry' ? ' · 네이버 응답이 없어 다시 시도 중' : '';
+    msetStatus(`블로그 ${mBlogNo}/${mblogs.length} (${mCur}) · 글 ${mPostNo}/${mPostTotal} · 소요시간 ${sec}초 진행중${extra}`, phase === 'retry' ? 'wait' : 'run');
+  }
+  setInterval(mtick, 500);
+
+  function mrender() {
+    const all = mblogs.flatMap((b) => b.posts);
+    $('m-s-blogs').textContent = `블로그 ${mblogs.length}`;
+    const mt = tally(all);
+    $('m-s-ok').textContent = `노출 ${all.filter((p) => state(p) === 'ok').length} (메인 ${mt.mOk} · 블로그 ${mt.bOk})`;
+    $('m-s-no').textContent = `누락 ${all.filter((p) => state(p) === 'no').length} (메인 ${mt.mNo} · 블로그 ${mt.bNo})`;
+    $('m-s-err').textContent = `확인 실패 ${all.filter((p) => state(p) === 'err').length}`;
+    (['ok', 'no', 'err'] as const).forEach((k) => $('m-s-' + k).classList.toggle('active', mfilter === k));
+
+    // 검색어가 있으면 현재 결과에서 글 제목(또는 블로그 이름·아이디)이 맞는 것만 보여주고, 상세는 자동으로 펼칩니다.
+    const q = norm(mquery);
+    let hitPosts = 0;
+    let hitBlogs = 0;
+    const rows = mblogs.map((b, i) => {
+      const nameHit = !!q && norm(`${b.title} ${b.id}`).includes(q);
+      const vp0 = !q || nameHit ? b.posts : b.posts.filter((p) => norm(p.title).includes(q));
+      const vp = mfilter ? vp0.filter((p) => state(p) === mfilter) : vp0; // 위쪽 배지를 누르면 그 상태의 글만 보여줍니다
+      if ((q && !nameHit && !vp0.length) || (mfilter && !vp.length)) return '';
+      hitBlogs++;
+      hitPosts += vp.length;
+      const ok = vp0.filter((p) => state(p) === 'ok').length;
+      const no = vp0.filter((p) => state(p) === 'no').length;
+      const err = vp0.filter((p) => state(p) === 'err').length;
+      const tt = tally(vp0);
+      const checked = b.posts.filter((p) => state(p) !== 'wait').length;
+      const prog =
+        b.status === 'error' ? `<span class="st st-err" title="${esc(b.error)}">조회 실패</span>`
+        : b.status === 'wait' ? '<span class="st st-wait">대기</span>'
+        : b.status === 'load' ? '<span class="st st-busy">글 목록 확인 중…</span>'
+        : b.status === 'run' ? `<span class="st st-busy">${checked}/${b.posts.length} 확인 중…</span>`
+        : b.status === 'stop' ? '<span class="st st-wait">중지됨</span>'
+        : b.posts.length ? `<span class="st st-ok">${b.posts.length}/${b.posts.length} 완료</span>` : '<span class="st st-wait">글 없음</span>';
+      const has = vp0.length > 0;
+      const open = !!q || !!mfilter || mOpen.has(b.id);
+      const main = `<tr class="grp mg mg-f${open && vp.length ? ' open' : ' mg-l'}">
+        <td class="num">${i + 1}</td>
+        <td><div class="bname"><a href="https://blog.naver.com/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.title || b.id)}</b></a><small>${esc(b.id)}</small></div></td>
+        <td>${prog}</td>
+        <td class="c">${has ? `${ok}<small class="brk">메인 ${tt.mOk} · 블로그 ${tt.bOk}</small>` : '-'}</td><td class="c">${has ? `${no}<small class="brk">메인 ${tt.mNo} · 블로그 ${tt.bNo}</small>` : '-'}</td><td class="c">${has ? err : '-'}</td>
+        <td class="c">${has && !q && !mfilter ? `<button type="button" class="${open ? 'btn-fold' : 'btn-open'}" data-open="${esc(b.id)}">${open ? '▴ 접기' : '▾ 상세 보기'}</button>` : ''}</td></tr>`;
+      const sub = vp.length > 0 && open
+        ? `<tr class="sub mg mg-l"><td colspan="7"><div class="sublist">${vp.map((p) => {
+            const [ago, abs] = when(p.pubDate);
+            return `<div class="subrow"><a class="t" href="https://blog.naver.com/${esc(b.id)}/${p.logNo}" target="_blank" rel="noopener">${esc(p.title)}</a><span class="date-cell"><span>${esc(abs)}</span><b>${esc(ago)}</b></span>${cell(p.main, p, false, true)}${cell(p.blog, p, true, true)}</div>`;
+          }).join('')}</div></td></tr>`
+        : '';
+      return main + sub + '<tr class="gap"><td colspan="7"></td></tr>';
+    });
+    const body = rows.join('');
+    $('m-rows').innerHTML = body ? `<tr class="gap"><td colspan="7"></td></tr>${body}` : (q || mfilter ? '<tr><td colspan="7" style="text-align:center;color:#6f7d97">조건에 맞는 글이 없습니다.</td></tr>' : '');
+    const tag = ({ ok: '노출', no: '누락', err: '확인 실패' } as Record<string, string>)[mfilter] || '';
+    $('mq-count').textContent = q || mfilter ? `${tag ? tag + ' ' : ''}${q ? '검색 ' : ''}결과 ${hitPosts}개 글 · ${hitBlogs}개 블로그` : '';
+  }
+
+  async function runMulti() {
+    if (working || mrunning) return;
+    const err = $('m-error');
+    err.hidden = true;
+    const raw = ($('m-ids') as HTMLTextAreaElement).value;
+    const ids = [...new Set(raw.split(/\r?\n/).map(parseId).filter(Boolean))];
+    if (!ids.length) { err.textContent = '블로그 아이디를 한 줄에 하나씩 입력하세요.'; err.hidden = false; return; }
+    if (ids.length > 10) { err.textContent = '한 번에 최대 10개 블로그까지 확인할 수 있어요.'; err.hidden = false; return; }
+    try { localStorage.setItem('naver_multi_ids', raw); } catch {}
+
+    const per = Number(($('m-count') as HTMLSelectElement).value);
+    mrunning = true;
+    mstop = false;
+    mStart = Date.now();
+    phase = 'check';
+    mblogs = ids.map((id) => ({ id, title: '', posts: [], status: 'wait' as const, error: '' }));
+    mOpen.clear();
+    mquery = '';
+    mfilter = '';
+    ($('mq') as HTMLInputElement).value = '';
+    ($('m-go') as HTMLButtonElement).disabled = true;
+    ($('m-stop') as HTMLElement).hidden = false;
+    $('m-result').hidden = false;
+    $('m-prog').style.width = '0';
+    mrender();
+
+    let mdone = 0;
+    const mtotal = ids.length * per;
+    const bar = () => ($('m-prog').style.width = Math.min(100, (mdone / mtotal) * 100) + '%');
+    try {
+      for (let bi = 0; bi < mblogs.length && !mstop; bi++) {
+        const b = mblogs[bi];
+        mBlogNo = bi + 1; mCur = b.id; mPostNo = 0; mPostTotal = per;
+        b.status = 'load';
+        phase = 'check';
+        mrender();
+        mtick();
+        try {
+          const res = await fetch(`/api/naver-posts?blogId=${encodeURIComponent(b.id)}`);
+          if (res.status === 401) { location.href = loginUrl(); throw new Error('로그인이 필요합니다.'); }
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || '조회에 실패했습니다.');
+          b.title = d.blogTitle || b.id;
+          b.posts = d.posts.slice(0, per).map((p: Omit<Post, 'main' | 'blog' | 'note'>) => ({ ...p, main: null, blog: null, note: '' }));
+        } catch (e) {
+          b.error = (e as Error).message || '조회에 실패했습니다.';
+          b.status = 'error';
+          mdone += per;
+          bar();
+          mrender();
+          continue;
+        }
+        b.status = 'run';
+        mPostTotal = b.posts.length;
+        mrender();
+        for (let k = 0; k < b.posts.length && !mstop; k++) {
+          const p = b.posts[k];
+          mPostNo = k + 1;
+          phase = 'check';
+          p.busy = true;
+          mrender();
+          mtick();
+          await checkOne(p, b.id);
+          p.busy = false;
+          mdone++;
+          bar();
+          mrender();
+          if (k < b.posts.length - 1 && !mstop) {
+            phase = 'rest';
+            mtick();
+            await sleep(DELAY + Math.random() * JITTER);
+          }
+        }
+        if (!mstop) { b.status = 'done'; mdone += per - b.posts.length; bar(); }
+        mrender();
+        if (bi < mblogs.length - 1 && !mstop) {
+          phase = 'rest';
+          mtick();
+          await sleep(DELAY + Math.random() * JITTER);
+        }
+      }
+    } finally {
+      mblogs.forEach((b) => { if (b.status === 'run' || b.status === 'load') b.status = 'stop'; });
+      const all = mblogs.flatMap((b) => b.posts);
+      const count = (k: string) => all.filter((p) => state(p) === k).length;
+      const sec = Math.round((Date.now() - mStart) / 1000);
+      const msg = `${mstop ? '멀티 체크를 중지했어요' : '멀티 체크 완료'} · 소요시간 ${sec}초 (노출 ${count('ok')} · 누락 ${count('no')} · 확인 실패 ${count('err')})`;
+      msetStatus(msg, 'idle');
+      toast(msg);
+      mrunning = false;
+      ($('m-go') as HTMLButtonElement).disabled = false;
+      ($('m-stop') as HTMLElement).hidden = true;
+      mrender();
+      pump();
+    }
+  }
+
+  $('mq').addEventListener('input', () => {
+    mquery = ($('mq') as HTMLInputElement).value.trim();
+    mrender();
+  });
+  document.querySelector('#m-result .sum')!.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-mf]');
+    if (!b) return;
+    const v = b.dataset.mf!;
+    mfilter = v === 'all' || mfilter === v ? '' : (v as 'ok' | 'no' | 'err');
+    mrender();
+  });
+  $('m-go').addEventListener('click', runMulti);
+  $('m-stop').addEventListener('click', () => { mstop = true; msetStatus('현재 글까지만 확인하고 멈추는 중…', 'wait'); });
+  $('m-rows').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-open]');
+    if (!b) return;
+    const id = b.dataset.open!;
+    if (mOpen.has(id)) mOpen.delete(id); else mOpen.add(id);
+    mrender();
+  });
+  $('tabs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (!b) return;
+    $('tabs').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    $('tab-single').hidden = b.dataset.tab !== 'single';
+    $('q-wrap').hidden = b.dataset.tab !== 'single';
+    $('mq-wrap').hidden = b.dataset.tab !== 'multi';
+    $('tab-multi').hidden = b.dataset.tab !== 'multi';
+  });
+  try {
+    const saved = localStorage.getItem('naver_multi_ids');
+    if (saved) ($('m-ids') as HTMLTextAreaElement).value = saved;
+  } catch {}
+</script>
