@@ -45,3 +45,16 @@ export async function verify(cookieHeader, secret) {
   if (!(Number(exp) > Date.now() / 1000)) return false;
   return safeEqual(sig, await hmac(secret, `${u}.${exp}`));
 }
+
+// 로그인한 아이디를 돌려줍니다. (로그인하지 않았거나 쿠키가 올바르지 않으면 빈 문자열)
+export async function userOf(cookieHeader, secret) {
+  if (!(await verify(cookieHeader, secret))) return '';
+  const m = /(?:^|;\s*)session=([^;]+)/.exec(cookieHeader || '');
+  const u = m[1].split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+  try {
+    const bin = atob(u + '='.repeat((4 - (u.length % 4)) % 4));
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+  } catch {
+    return '';
+  }
+}
