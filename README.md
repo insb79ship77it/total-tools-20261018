@@ -12,7 +12,7 @@ Astro + Cloudflare Pages Functions 기반 웹 도구 모음.
 ```
 npm install
 npm run dev        # 화면 확인 (API 제외)
-npm run cf:dev     # 빌드 후 Functions 포함 실행
+npm run cf:dev     # 빌드 후 Functions 포함 실행 
 ```
 
 ## Cloudflare Pages 배포
