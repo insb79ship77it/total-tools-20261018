@@ -148,10 +148,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
       <div class="card panel">
         <h2 class="img-h">글씨 넣기</h2>
         <p class="hint">상단·중단·하단·추가 텍스트마다 글씨, 크기, 색, 굵기, 이미지(로고)를 따로 정해요. 글씨를 비워두면 그 영역은 나오지 않아요.</p>
-        <div class="img-layers">
-          <h4>레이어 순서 <span>위쪽일수록 앞에 보여요</span></h4>
+        <details class="img-layers">
+          <summary>레이어 순서 <span>위쪽일수록 앞에 보여요</span></summary>
           <div id="layer-list"></div>
-        </div>
+        </details>
         <div id="sections"></div>
       </div>
 
@@ -256,8 +256,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-file a.dl { color: var(--blue); font-weight: 700; }
   .img-file button { border: 0; background: none; color: #8a94a8; cursor: pointer; font-size: 1rem; }
   .img-layers { margin: 14px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fafcff; }
-  .img-layers h4 { margin: 0 0 8px; font-size: 0.9rem; color: var(--navy); }
-  .img-layers h4 span { margin-left: 6px; font-size: 0.78rem; font-weight: 500; color: var(--muted); }
+  .img-layers summary { cursor: pointer; font-size: 0.9rem; font-weight: 700; color: var(--navy); }
+  .img-layers[open] summary { margin-bottom: 8px; }
+  .img-layers summary span { margin-left: 6px; font-size: 0.78rem; font-weight: 500; color: var(--muted); }
   .img-layer { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #edf1f7; font-size: 0.88rem; }
   .img-layer:first-child { border-top: 0; }
   .img-layer .pos { width: 44px; font-size: 0.75rem; color: var(--blue); font-weight: 700; }
@@ -266,6 +267,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .img-layer button:disabled { opacity: 0.35; cursor: default; }
   .img-sec { padding: 20px 0; border-top: 1px solid var(--line); }
   .img-sec:first-child { border-top: 0; padding-top: 12px; }
+  .img-fold { margin-left: auto; border: 1px solid currentColor; background: #fff; color: inherit; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
   .img-sec h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--gb); color: var(--gc); font-size: 1.15rem; font-weight: 800; }
   .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 12px; }
   .img-rng, .img-clr, .img-sel { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); font-weight: 600; }
@@ -431,7 +433,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const TITLES = ['상단 텍스트', '중단 텍스트', '하단 텍스트', '추가 텍스트'];
   const SEC_CLS = ['g-net', 'g-blog', 'g-dev', 'g-text'];
   $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec ${SEC_CLS[i]}">
-    <h3>${TITLES[i]}</h3>
+    <h3>${TITLES[i]}<button type="button" class="img-fold" data-fold="${i}" aria-expanded="true">접기 ▲</button></h3>
+    <div class="img-secbody">
     <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
     <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색 · ((star)) 아이콘 · ((star:#ff4d4d)) 아이콘 색 지정 · 이름은 Check box처럼 띄어써도 돼요 · <a href="https://fonts.google.com/icons" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600">아이콘 이름 찾기</a></p>
     ${iconPicker(POS[i])}
@@ -462,7 +465,17 @@ import ToolPage from '../../layouts/ToolPage.astro';
       ${rng(i, 'imgSize', '이미지 크기', 2, 60, 0.5, s.imgSize, '%')}${sel(i, 'imgPos', '이미지 위치', [['left', '글씨 왼쪽'], ['top', '글씨 위'], ['bottom', '글씨 아래']], s.imgPos)}
       <button type="button" class="btn btn-ghost btn-sm" data-sclear="${i}">이미지 지우기</button><span class="hint" data-sname="${i}" style="margin:0"></span>
     </div></details>
+    </div>
   </section>`).join('');
+
+  $('sections').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button.img-fold') as HTMLButtonElement | null;
+    if (!b) return;
+    const body = b.closest('.img-sec')!.querySelector('.img-secbody') as HTMLElement;
+    body.hidden = !body.hidden;
+    b.textContent = body.hidden ? '열기 ▼' : '접기 ▲';
+    b.setAttribute('aria-expanded', String(!body.hidden));
+  });
 
   function renderLayers() {
     const front = [...order].reverse(); // 맨 앞 → 맨 뒤
