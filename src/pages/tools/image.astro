@@ -133,10 +133,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
           </div>
           <p class="hint" id="preset-msg" style="margin:8px 0 12px"></p>
           <div class="img-sub">
-            <h4>내 프리셋 (아이디별 저장 · 최대 10개)</h4>
-            <p class="hint" style="margin:0 0 8px">지금 설정을 이름을 붙여 서버에 저장해요. 같은 이름으로 저장하면 덮어쓰고, 10개를 넘으면 가장 오래된 것이 지워져요. 로그인한 아이디마다 따로 저장돼요.</p>
+            <h4>내 프리셋 (아이디별 저장 · 최대 10개)<button type="button" class="ps-b" id="ps-reload" style="margin-left:auto">reload</button></h4>
+            <p class="hint" style="margin:0 0 8px">지금 설정을 서버에 저장해요. 입력한 이름 뒤에 날짜·시간이 자동으로 붙어서 같은 이름으로 여러 번 저장해도 따로 남고, 10개를 넘으면 가장 오래된 것이 지워져요. 로그인한 아이디마다 따로 저장돼요.</p>
             <div class="row" style="align-items:center">
-              <input class="field" id="ps-name" type="text" maxlength="40" placeholder="프리셋 이름 (비우면 날짜·시간)" />
+              <input class="field" id="ps-name" type="text" maxlength="24" placeholder="프리셋 이름 (뒤에 날짜·시간이 자동으로 붙어요)" />
               <button type="button" class="btn btn-primary btn-sm" id="ps-save" style="flex:none">현재 설정 저장</button>
             </div>
             <div id="ps-list" style="margin-top:10px"></div>
@@ -322,6 +322,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .ps-item:last-child { border-bottom: 0; }
   .ps-t { flex: 1; min-width: 0; }
   .ps-t b { display: block; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ps-b { flex: none; border: 1px solid #cfd8e8; background: #fff; color: var(--blue); border-radius: 6px; padding: 1px 8px; font: inherit; font-size: 0.72rem; font-weight: 700; line-height: 1.5; cursor: pointer; }
+  .ps-b:hover { background: var(--soft); }
+  .ps-b.del { color: var(--red); }
   .ps-t small { color: var(--muted); font-size: 0.78rem; }
   @media (max-width: 900px) { .img-layout { grid-template-columns: 1fr; } .img-side { position: static; order: -1; } }
 </style>
@@ -681,7 +684,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const psWhen = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
   function renderPs() {
     $('ps-list').innerHTML = psList.length
-      ? psList.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(p.name)}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="btn btn-ghost btn-sm" data-psload>불러오기</button><button type="button" class="btn btn-ghost btn-sm" data-psdel>삭제</button></div>`).join('')
+      ? psList.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(p.name)}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="ps-b" data-psload>open</button><button type="button" class="ps-b del" data-psdel>del</button></div>`).join('')
       : '<p class="hint" style="margin:0">저장한 프리셋이 없어요.</p>';
   }
   async function psCall(method: string, qs = '', body?: unknown) {
@@ -706,9 +709,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
     psLoaded = true;
     psCall('GET').then(() => psMsg(`저장된 프리셋 ${psList.length}/${psMax}개`)).catch((e) => { psLoaded = false; psFail(e); });
   }
+  $('ps-reload').addEventListener('click', async () => {
+    try { await psCall('GET'); psLoaded = true; psMsg(`새로고침했어요. 저장된 프리셋 ${psList.length}/${psMax}개`); } catch (e) { psLoaded = false; psFail(e); }
+  });
   $('ps-save').addEventListener('click', async () => {
     const d = new Date();
-    const name = $<HTMLInputElement>('ps-name').value.trim() || `프리셋 ${d.getMonth() + 1}/${d.getDate()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    const base = $<HTMLInputElement>('ps-name').value.trim().slice(0, 24) || '프리셋';
+    const name = `${base} ${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     try {
       await psCall('POST', '', { name, data: toPresetText(secs, wm, bgi, order) });
       $<HTMLInputElement>('ps-name').value = '';
