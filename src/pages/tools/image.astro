@@ -133,7 +133,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
           </div>
           <p class="hint" id="preset-msg" style="margin:8px 0 12px"></p>
           <div class="img-sub">
-            <h4>내 프리셋 (아이디별 저장 · 최대 10개)<button type="button" class="ps-b" id="ps-reload" style="margin-left:auto">reload</button></h4>
+            <h4>내 프리셋 (아이디별 저장 · 최대 10개)<button type="button" class="ps-b" id="ps-reload" style="margin-left:auto" title="새로고침" aria-label="새로고침">↻</button></h4>
             <p class="hint" style="margin:0 0 8px">지금 설정을 서버에 저장해요. 입력한 이름 뒤에 날짜·시간이 자동으로 붙어서 같은 이름으로 여러 번 저장해도 따로 남고, 10개를 넘으면 가장 오래된 것이 지워져요. 로그인한 아이디마다 따로 저장돼요.</p>
             <div class="row" style="align-items:center">
               <input class="field" id="ps-name" type="text" maxlength="24" placeholder="프리셋 이름 (뒤에 날짜·시간이 자동으로 붙어요)" />
@@ -684,7 +684,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const psWhen = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
   function renderPs() {
     $('ps-list').innerHTML = psList.length
-      ? psList.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(p.name)}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="ps-b" data-psload>open</button><button type="button" class="ps-b del" data-psdel>del</button></div>`).join('')
+      ? psList.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(p.name)}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
       : '<p class="hint" style="margin:0">저장한 프리셋이 없어요.</p>';
   }
   async function psCall(method: string, qs = '', body?: unknown) {
