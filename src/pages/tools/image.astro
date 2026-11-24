@@ -121,8 +121,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
       </div>
 
       <div class="card panel">
-        <h2 class="img-h">글씨 넣기</h2>
-        <p class="hint">상단·중단·하단마다 글씨, 크기, 색, 굵기, 이미지(로고)를 따로 정해요. 글씨를 비워두면 그 영역은 나오지 않아요.</p>
+        <h2 class="img-h">프리셋</h2>
         <details class="img-det" id="preset-det">
           <summary>프리셋 (설정을 텍스트로 복사 · 붙여넣기)</summary>
           <p class="hint" style="margin:0 0 8px">상단·중단·하단의 글씨 내용과 아이콘, 색, 크기, 위치, 배경 박스, 그림자 등 지금 설정을 텍스트로 만들어요. 복사해 두었다가 붙여넣고 "적용"을 누르면 그대로 돌아와요. 반복 워터마크와 아이콘 배경 설정도 함께 들어가요. (이미지(로고) 파일은 텍스트로 담을 수 없어서 제외돼요.)</p>
@@ -144,6 +143,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <p class="hint" id="ps-msg" style="margin:8px 0 0"></p>
           </div>
         </details>
+      </div>
+
+      <div class="card panel">
+        <h2 class="img-h">글씨 넣기</h2>
+        <p class="hint">상단·중단·하단마다 글씨, 크기, 색, 굵기, 이미지(로고)를 따로 정해요. 글씨를 비워두면 그 영역은 나오지 않아요.</p>
         <div id="sections"></div>
       </div>
 
@@ -166,7 +170,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
           <label class="img-sel"><span>저장 형식</span>
             <select class="field" id="fmt"><option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option></select>
           </label>
-          <label class="img-rng"><span>화질 <b id="q-v">90</b></span><input type="range" id="quality" min="40" max="100" step="1" value="90" /></label>
+          <label class="img-rng"><span>화질 <b id="q-v">95</b></span><input type="range" id="quality" min="40" max="100" step="1" value="95" /></label>
           <label class="img-sel"><span>크기 조절</span>
             <select class="field" id="rs-mode"><option value="none">원본 크기 유지</option><option value="pct">비율(%)로 줄이기</option><option value="px">최대 가로·세로(px)</option></select>
           </label>
@@ -184,15 +188,15 @@ import ToolPage from '../../layouts/ToolPage.astro';
               <label class="img-sel" id="nm-base-w" hidden><span>지정할 이름</span><input class="field" id="nm-base" type="text" placeholder="예: card" /></label>
               <label class="img-chk" id="nm-seq-w" hidden style="grid-column:1/-1"><input type="checkbox" id="nm-seq" checked /> 여러 장이면 순번 붙이기 (-1, -2 …)</label>
               <label class="img-sel"><span>이름 뒤에 붙일 글자 (선택)</span><input class="field" id="suffix" type="text" placeholder="예: _thumb" /></label>
-              <label class="img-sel"><span>날짜·시간 붙이기</span>
-                <select class="field" id="nm-stamp">
-                  <option value="none">붙이지 않음</option>
-                  <option value="date">날짜 (예: 20261109)</option>
-                  <option value="time">시간 (예: 153045)</option>
-                  <option value="both">날짜+시간 (예: 20261109_153045)</option>
-                </select>
+              <div class="img-sel"><span>날짜·시간 붙이기 (함께 선택 가능)</span>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:6px">
+                  <label class="img-chk"><input type="checkbox" id="nm-date" /> 날짜 (예: 20261109)</label>
+                  <label class="img-chk"><input type="checkbox" id="nm-time" /> 시간 (예: 153045)</label>
+                </div>
+              </div>
+              <label class="img-sel"><span>랜덤 숫자 붙이기</span>
+                <select class="field" id="nm-rand"><option value="0">붙이지 않음</option><option value="4">4자리</option><option value="5">5자리</option></select>
               </label>
-              <label class="img-chk" style="grid-column:1/-1"><input type="checkbox" id="nm-rand" /> 랜덤 숫자 4자리 붙이기</label>
               <p class="hint" id="nm-example" style="grid-column:1/-1;margin:0"></p>
             </div>
           </div>
@@ -404,23 +408,24 @@ import ToolPage from '../../layouts/ToolPage.astro';
   // 자주 쓰는 아이콘 (눌러서 글씨 칸에 넣는 버튼)
   const ICON_NAMES = ['star', 'favorite', 'check', 'check_box', 'check_circle', 'done_all', 'thumb_up', 'lightbulb', 'bolt', 'local_fire_department', 'campaign', 'notifications', 'info', 'help', 'warning', 'error', 'arrow_forward', 'arrow_right_alt', 'trending_up', 'verified', 'workspace_premium', 'emoji_events', 'rocket_launch', 'savings', 'payments', 'shopping_cart', 'sell', 'redeem', 'schedule', 'calendar_month', 'location_on', 'call', 'mail', 'link', 'search', 'visibility', 'download', 'edit', 'home', 'person', 'group', 'school', 'menu_book', 'sentiment_satisfied', 'celebration', 'tips_and_updates', 'auto_awesome', 'shield', 'lock', 'play_circle', 'photo_camera', 'music_note', 'restaurant', 'flight', 'directions_car', 'pets', 'eco', 'wifi', 'cloud', 'sunny', 'diamond'];
   const chips = ICON_NAMES.map((n) => `<button type="button" class="mi" data-ic="${n}" data-name="${n}" title="${n.replace(/_/g, ' ')}">${n}</button>`).join('');
-  const iconPicker = () => `<details class="img-icondet"><summary>아이콘 넣기 (눌러서 추가)</summary><input class="field" type="search" data-icsearch placeholder="이름으로 찾기 (예: star, check box)" style="margin-bottom:8px"><div class="img-icons">${chips}</div></details>`;
+  const iconPicker = (pre = '') => `<details class="img-icondet"><summary>${pre}아이콘 넣기 (눌러서 추가)</summary><input class="field" type="search" data-icsearch placeholder="이름으로 찾기 (예: star, check box)" style="margin-bottom:8px"><div class="img-icons">${chips}</div></details>`;
 
+  const POS = ['상단 · ', '중단 · ', '하단 · '];
   const TITLES = ['상단 · 작은 글씨', '중단 · 큰 글씨', '하단 · 작은 글씨'];
   const SEC_CLS = ['g-net', 'g-blog', 'g-dev'];
   $('sections').innerHTML = secs.map((s, i) => `<section class="img-sec ${SEC_CLS[i]}">
     <h3>${TITLES[i]}</h3>
     <textarea class="field" rows="${i === 1 ? 3 : 2}" data-s="${i}" data-k="text" placeholder="비워두면 이 영역은 나오지 않아요">${esc(s.text)}</textarea>
     <p class="hint">여러 줄 가능 · [[단어]] 박스 강조 · {{단어}} 강조 글자색 · ((star)) 아이콘 · ((star:#ff4d4d)) 아이콘 색 지정 · 이름은 Check box처럼 띄어써도 돼요 · <a href="https://fonts.google.com/icons" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600">아이콘 이름 찾기</a></p>
-    ${iconPicker()}
-    <details><summary>글자 설정 (글꼴 · 크기 · 위치)</summary><div class="img-grid">
+    ${iconPicker(POS[i])}
+    <details><summary>${POS[i]}글자 설정 (글꼴 · 크기 · 위치)</summary><div class="img-grid">
       ${sel(i, 'font', '글꼴', FONT_OPTS, s.font)}${sel(i, 'weight', '굵기', WEIGHTS, s.weight)}
       ${clr(i, 'color', '글자색', s.color)}${sel(i, 'align', '정렬', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']], s.align)}
       ${rng(i, 'size', '크기', 1, 25, 0.1, s.size, '%')}${rng(i, 'lh', '줄 간격', 0.8, 2, 0.05, s.lh)}
       ${rng(i, 'ls', '자간', -5, 20, 0.5, s.ls)}${rng(i, 'y', '세로 위치', 0, 100, 0.5, s.y, '%')}
       ${rng(i, 'x', '가로 위치', 0, 100, 0.5, s.x, '%')}
     </div></details>
-    <details><summary>강조 · 아이콘 · 테두리 · 그림자</summary><div class="img-grid">
+    <details><summary>${POS[i]}강조 · 아이콘 · 테두리 · 그림자</summary><div class="img-grid">
       ${clr(i, 'hl', '박스 강조 배경색', s.hl)}${clr(i, 'accent', '강조 글자색', s.accent)}
       ${clr(i, 'iconColor', '아이콘 색', s.iconColor)}${rng(i, 'iconScale', '아이콘 크기', 60, 220, 5, s.iconScale, '%')}
       ${chk(i, 'stroke', '테두리', s.stroke)}${clr(i, 'strokeColor', '테두리 색', s.strokeColor)}
@@ -428,14 +433,14 @@ import ToolPage from '../../layouts/ToolPage.astro';
       ${chk(i, 'shadow', '그림자', s.shadow)}${clr(i, 'shadowColor', '그림자 색', s.shadowColor)}
       ${rng(i, 'shadowBlur', '그림자 흐림', 0, 40, 1, s.shadowBlur)}${rng(i, 'shadowDist', '그림자 거리', 0, 30, 1, s.shadowDist)}
     </div></details>
-    <details><summary>배경 박스</summary><div class="img-grid">
+    <details><summary>${POS[i]}배경 박스</summary><div class="img-grid">
       ${sel(i, 'box', '모양', [['none', '없음'], ['box', '박스 (글씨에 맞춤)'], ['band', '가로 전체 띠']], s.box)}${clr(i, 'boxColor', '박스 색', s.boxColor)}
       ${rng(i, 'boxAlpha', '박스 투명도(진하기)', 0, 100, 1, s.boxAlpha, '%')}${rng(i, 'boxRadius', '모서리 둥글기', 0, 100, 1, s.boxRadius, '%')}
       ${rng(i, 'padT', '위 간격', 0, 200, 5, s.padT, '%')}${rng(i, 'padB', '아래 간격', 0, 200, 5, s.padB, '%')}
       ${rng(i, 'padL', '왼쪽 간격', 0, 200, 5, s.padL, '%')}${rng(i, 'padR', '오른쪽 간격', 0, 200, 5, s.padR, '%')}
       <p class="hint" style="grid-column:1/-1;margin:0">간격은 글자 크기에 대한 비율이에요. (100% = 글자 한 칸)</p>
     </div></details>
-    <details><summary>이미지(로고)</summary><div class="img-grid">
+    <details><summary>${POS[i]}이미지(로고)</summary><div class="img-grid">
       <label class="img-sel" style="grid-column:1/-1"><span>이미지 올리기 (PNG, JPG, SVG)</span><input type="file" accept="image/*" data-simg="${i}"></label>
       ${rng(i, 'imgSize', '이미지 크기', 2, 60, 0.5, s.imgSize, '%')}${sel(i, 'imgPos', '이미지 위치', [['left', '글씨 왼쪽'], ['top', '글씨 위'], ['bottom', '글씨 아래']], s.imgPos)}
       <button type="button" class="btn btn-ghost btn-sm" data-sclear="${i}">이미지 지우기</button><span class="hint" data-sname="${i}" style="margin:0"></span>
@@ -1206,13 +1211,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
   const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
   // ==NAME-START==
-  // 파일 이름 = 이름(기존 또는 직접 지정) + 뒤에 붙일 글자 + 순번 + 날짜/시간 + 랜덤 4자리
+  // 파일 이름 = 이름(기존 또는 직접 지정) + 뒤에 붙일 글자 + 순번 + 날짜/시간 + 랜덤 4·5자리
   const nmMode = $<HTMLSelectElement>('nm-mode');
   const pad2 = (n: number) => String(n).padStart(2, '0');
-  function stampText(d: Date, kind: string) {
+  function stampText(d: Date, useDate: boolean, useTime: boolean) {
     const date = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
     const time = `${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
-    return kind === 'date' ? date : kind === 'time' ? time : kind === 'both' ? `${date}_${time}` : '';
+    return [useDate ? date : '', useTime ? time : ''].filter(Boolean).join('_');
   }
   const cleanName = (t: string) => t.replace(/[\\/:*?"<>|]+/g, '_');
   function buildName(orig: string, idx: number, total: number, ext: string, d: Date, fixedRand?: string) {
@@ -1220,13 +1225,14 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const base = cleanName(custom ? $<HTMLInputElement>('nm-base').value.trim() || 'image' : orig.replace(/\.[^.]+$/, ''));
     const suffix = cleanName($<HTMLInputElement>('suffix').value.trim());
     const seq = custom && $<HTMLInputElement>('nm-seq').checked && total > 1 ? `-${idx + 1}` : '';
-    const st = stampText(d, $<HTMLSelectElement>('nm-stamp').value);
-    const rand = $<HTMLInputElement>('nm-rand').checked ? `_${fixedRand ?? String(Math.floor(Math.random() * 10000)).padStart(4, '0')}` : '';
+    const st = stampText(d, $<HTMLInputElement>('nm-date').checked, $<HTMLInputElement>('nm-time').checked);
+    const rn = Number($<HTMLSelectElement>('nm-rand').value);
+    const rand = rn ? `_${fixedRand ? fixedRand.slice(0, rn) : String(Math.floor(Math.random() * 10 ** rn)).padStart(rn, '0')}` : '';
     return `${base}${suffix}${seq}${st ? '_' + st : ''}${rand}.${ext}`;
   }
   function updateNameExample() {
     const f = files[0];
-    $('nm-example').textContent = `예시: ${buildName(f ? f.name : 'photo.jpg', 0, Math.max(files.length, 1), fmtEl.value, new Date(), '1234')}${$<HTMLInputElement>('nm-rand').checked ? ' (랜덤 숫자는 예시)' : ''}`;
+    $('nm-example').textContent = `예시: ${buildName(f ? f.name : 'photo.jpg', 0, Math.max(files.length, 1), fmtEl.value, new Date(), '12345')}${$<HTMLSelectElement>('nm-rand').value !== '0' ? ' (랜덤 숫자는 예시)' : ''}`;
   }
   nmMode.addEventListener('change', () => {
     const custom = nmMode.value === 'custom';
@@ -1234,7 +1240,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     ($('nm-seq-w') as HTMLElement).hidden = !custom;
     updateNameExample();
   });
-  ['nm-base', 'suffix', 'nm-stamp', 'nm-rand', 'nm-seq'].forEach((id) => {
+  ['nm-base', 'suffix', 'nm-date', 'nm-time', 'nm-rand', 'nm-seq'].forEach((id) => {
     $(id).addEventListener('input', updateNameExample);
     $(id).addEventListener('change', updateNameExample);
   });
