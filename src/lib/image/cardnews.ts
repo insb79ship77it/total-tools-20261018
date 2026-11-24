@@ -151,13 +151,6 @@ export const CARD_STYLES: [string, string, (k: CC) => string][] = [
       + rect(x0, y0, cw, ch, 'url(#sg)', r)
       + `<circle cx="${n1(w / 2)}" cy="${n1(y0 + 62 * u)}" r="${n1(10 * u)}" fill="none" stroke="${c.accent}" stroke-width="${n1(5 * u)}"/>`;
   }],
-  ['quote', '다크 인용 카드', (k) => {
-    const { u, w, h, c } = k;
-    const g = `<defs><linearGradient id="qg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity=".15"/><stop offset="1" stop-color="#000000" stop-opacity=".65"/></linearGradient></defs>`;
-    return g + rect(0, 0, w, h, 'url(#qg)')
-      + `<circle cx="${n1(w / 2)}" cy="${n1(130 * u)}" r="${n1(34 * u)}" fill="${c.accent}"/>`
-      + `<text x="${n1(w / 2)}" y="${n1(152 * u)}" font-family="Georgia, serif" font-weight="700" font-size="${n1(78 * u)}" text-anchor="middle" fill="${c.card}">“</text>`;
-  }],
   ['sketch', '스케치 카드', (k) => {
     const { u, w, h, x0, y0, cw, ch, c } = k;
     const s = 40 * u;
