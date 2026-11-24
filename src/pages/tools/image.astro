@@ -357,6 +357,11 @@ import ToolPage from '../../layouts/ToolPage.astro';
   });
   const face = (family: string, weight: number, url: string, fmt: string) =>
     `@font-face{font-family:'${family}';font-weight:${weight};font-display:swap;src:url('${url}') format('${fmt}')}`;
+  // 파일이 하나뿐인 글꼴: 모든 굵기에 같은 파일을 써서 굵게 눌러도 글씨가 억지로 두꺼워지지 않게 합니다.
+  const faceOne = (family: string, url: string, fmt: string) =>
+    `@font-face{font-family:'${family}';font-weight:100 900;font-display:swap;src:url('${url}') format('${fmt}')}`;
+  const NN = 'https://cdn.jsdelivr.net/gh/projectnoonnu/';
+  const PN = 'https://cdn.jsdelivr.net/gh/Project-Noonnu/';
   const PL = 'https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/';
   const GM = 'https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/';
   const kfont = document.createElement('style');
@@ -369,6 +374,16 @@ import ToolPage from '../../layouts/ToolPage.astro';
     face('GmarketSans', 500, GM + 'GmarketSansMedium.woff', 'woff'),
     face('GmarketSans', 700, GM + 'GmarketSansBold.woff', 'woff'),
     face('GmarketSans', 900, GM + 'GmarketSansBold.woff', 'woff'),
+    faceOne('Hippie', PN + '2610081905@hippie/hippie/hippie_히피체.woff2', 'woff2'),
+    faceOne('JejuStoneWall', NN + 'noonfonts_2210-EF@1.0/EF_jejudoldam.woff2', 'woff2'),
+    faceOne('Cafe24Dongdong', NN + 'noonfonts_twelve@1.1/Cafe24Dongdong.woff', 'woff'),
+    faceOne('Cafe24SsongSsong', NN + 'noonfonts_twelve@1.1/Cafe24Syongsyong.woff', 'woff'),
+    faceOne('SejongjaeumimoeumiColorColor', PN + '2611030019@color-1696-1553/color-1696-1553/SejongJaeumiMoeumi-Color_.woff2', 'woff2'),
+    faceOne('Stella', PN + '2608201622@stellar-serif/stellar-serif/Stellar_Serif_Bold_Condensed.woff2', 'woff2'),
+    faceOne('MunmakchoHalfMoon', NN + '2604-1@1.0/MUNMAK_DALBANCHE.woff2', 'woff2'),
+    faceOne('OkDandan', NN + '2508-2@1.0/OkDanDan-Bold.woff2', 'woff2'),
+    faceOne('Yeongwol', NN + '2507-2@1.0/YeongwolTTF-Regular.woff2', 'woff2'),
+    faceOne('NohHaeChan', NN + 'noonfonts_20-10@1.0/ROEHOE-CHAN.woff', 'woff'),
   ].join('\n');
   document.head.append(kfont);
   const sheetsReady = Promise.all(fontLinks.map((l) => new Promise((r) => { l.onload = l.onerror = () => r(null); })));
