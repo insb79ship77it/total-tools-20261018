@@ -46,12 +46,12 @@ function applyPart(target: any, src: any, sid: string, wkey: string, range: Rang
   return n;
 }
 
-export function toPresetText(secs: Sec[], wm: Wm, bgi: Bgi): string {
+export function toPresetText(secs: Sec[], wm: Wm, bgi: Bgi, order?: number[]): string {
   const strip = (o: object) => { const c: any = { ...o }; delete c.img; return c; };
-  return JSON.stringify({ v: 1, sections: secs.map(strip), watermark: { ...wm }, iconBg: { ...bgi } });
+  return JSON.stringify({ v: 1, sections: secs.map(strip), watermark: { ...wm }, iconBg: { ...bgi }, ...(order ? { layers: [...order] } : {}) });
 }
 
-export function applyPreset(text: string, secs: Sec[], wm: Wm, bgi: Bgi, range: Range): PresetResult {
+export function applyPreset(text: string, secs: Sec[], wm: Wm, bgi: Bgi, range: Range, order?: number[]): PresetResult {
   let data: any;
   try { data = JSON.parse(text.trim()); }
   catch { return { ok: false, count: 0, error: '프리셋을 읽지 못했어요. 복사한 내용이 처음부터 끝까지 다 들어갔는지 확인해 주세요.' }; }
@@ -60,6 +60,11 @@ export function applyPreset(text: string, secs: Sec[], wm: Wm, bgi: Bgi, range: 
   }
   let count = 0;
   if (Array.isArray(data.sections)) data.sections.slice(0, secs.length).forEach((p: any, i: number) => { count += applyPart(secs[i], p, String(i), 'sec', range); });
+  // 레이어 순서: 0~(개수-1)이 한 번씩 들어 있을 때만 받습니다. (예전 프리셋에는 없어서 그대로 둬요)
+  if (order && Array.isArray(data.layers) && data.layers.length === order.length
+    && [...data.layers].sort((a: number, b: number) => a - b).every((v: number, i: number) => v === i)) {
+    order.splice(0, order.length, ...data.layers.map(Number)); count++;
+  }
   count += applyPart(wm, data.watermark, 'w', 'w', range);
   count += applyPart(bgi, data.iconBg, 'b', 'b', range);
   return count ? { ok: true, count } : { ok: false, count: 0, error: '적용할 수 있는 설정을 찾지 못했어요.' };
