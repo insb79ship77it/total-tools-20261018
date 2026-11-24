@@ -37,6 +37,16 @@ export const FONTS: { id: string; name: string; css: string; faces?: Record<numb
   { id: 'paperlogy', name: '페이퍼로지', css: '"Paperlogy"' },
   { id: 'poppins', name: 'Poppins (영문)', css: '"Poppins"' },
   { id: 'montserrat', name: 'Montserrat (영문)', css: '"Montserrat"' },
+  { id: 'hippie', name: '히피체', css: '"Hippie"' },
+  { id: 'jejudoldam', name: '제주돌담', css: '"JejuStoneWall"' },
+  { id: 'dongdong', name: '카페24 동동', css: '"Cafe24Dongdong"' },
+  { id: 'ssongssong', name: '카페24 쑝쑝', css: '"Cafe24SsongSsong"' },
+  { id: 'sejongcolor', name: '세종 자음모음 컬러', css: '"SejongjaeumimoeumiColorColor"' },
+  { id: 'stella', name: '스텔라 (장체 세리프)', css: '"Stella"' },
+  { id: 'dalbanche', name: '문막 달반체', css: '"MunmakchoHalfMoon"' },
+  { id: 'okdandan', name: '옥단단', css: '"OkDandan"' },
+  { id: 'yeongwol', name: '영월', css: '"Yeongwol"' },
+  { id: 'nohhaechan', name: '노해찬', css: '"NohHaeChan"' },
 ];
 // 굵기별로 글꼴 이름이 따로 있는 글꼴(에스코어 드림)은 가장 가까운 굵기의 이름을 씁니다.
 export function fontStr(id: string, weight: number, px: number) {
