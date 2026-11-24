@@ -185,8 +185,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
               <label class="img-sel"><span>이름 방식</span>
                 <select class="field" id="nm-mode"><option value="orig">기존 파일명 사용</option><option value="custom">직접 지정</option></select>
               </label>
-              <label class="img-sel" id="nm-base-w" hidden><span>지정할 이름</span><input class="field" id="nm-base" type="text" placeholder="예: card" /></label>
-              <label class="img-chk" id="nm-seq-w" hidden style="grid-column:1/-1"><input type="checkbox" id="nm-seq" checked /> 여러 장이면 순번 붙이기 (-1, -2 …)</label>
+              <label class="img-sel" id="nm-base-w" style="transition:opacity .15s"><span>지정할 이름</span><input class="field" id="nm-base" type="text" placeholder="예: card" /></label>
+              <label class="img-chk" id="nm-seq-w" style="grid-column:1/-1;transition:opacity .15s"><input type="checkbox" id="nm-seq" checked /> 여러 장이면 순번 붙이기 (-1, -2 …)</label>
               <label class="img-sel"><span>이름 뒤에 붙일 글자 (선택)</span><input class="field" id="suffix" type="text" placeholder="예: _thumb" /></label>
               <div class="img-sel"><span>날짜·시간 붙이기 (함께 선택 가능)</span>
                 <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:6px">
@@ -1234,12 +1234,17 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const f = files[0];
     $('nm-example').textContent = `예시: ${buildName(f ? f.name : 'photo.jpg', 0, Math.max(files.length, 1), fmtEl.value, new Date(), '12345')}${$<HTMLSelectElement>('nm-rand').value !== '0' ? ' (랜덤 숫자는 예시)' : ''}`;
   }
-  nmMode.addEventListener('change', () => {
+  // 방식을 바꿔도 칸 위치가 움직이지 않게, 숨기지 않고 "직접 지정"일 때만 켭니다.
+  function syncNameMode() {
     const custom = nmMode.value === 'custom';
-    ($('nm-base-w') as HTMLElement).hidden = !custom;
-    ($('nm-seq-w') as HTMLElement).hidden = !custom;
+    [['nm-base-w', 'nm-base'], ['nm-seq-w', 'nm-seq']].forEach(([w, i]) => {
+      ($(i) as HTMLInputElement).disabled = !custom;
+      ($(w) as HTMLElement).style.opacity = custom ? '1' : '0.45';
+    });
     updateNameExample();
-  });
+  }
+  nmMode.addEventListener('change', syncNameMode);
+  syncNameMode();
   ['nm-base', 'suffix', 'nm-date', 'nm-time', 'nm-rand', 'nm-seq'].forEach((id) => {
     $(id).addEventListener('input', updateNameExample);
     $(id).addEventListener('change', updateNameExample);
