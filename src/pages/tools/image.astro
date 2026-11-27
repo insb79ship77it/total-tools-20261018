@@ -688,7 +688,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   });
 
   // ---- 내 프리셋 (아이디별 서버 저장, 최대 10개) ----
-  type PItem = { id: string; name: string; savedAt: string; data: string };
+  type PItem = { id: string; name: string; savedAt: string; data: string; pinnedAt?: string };
   type PKind = 'ps' | 'pin';
   let psList: PItem[] = [];
   let pinList: PItem[] = [];
@@ -711,7 +711,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const cur = psPage[kind];
     const part = list.slice((cur - 1) * PS_PER, cur * PS_PER);
     $(kind + '-list').innerHTML = part.length
-      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}</small></div>${kind === 'ps' ? '<button type="button" class="ps-b" data-pspin title="고정 프리셋으로 옮기기" aria-label="고정">📌</button>' : ''}<button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
+      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}${kind === 'pin' && p.pinnedAt ? ` (고정시간: ${esc(psWhen(p.pinnedAt))})` : ''}</small></div>${kind === 'ps' ? '<button type="button" class="ps-b" data-pspin title="고정 프리셋으로 옮기기" aria-label="고정">📌</button>' : '<button type="button" class="ps-b" data-psunpin title="고정 해제 (내 프리셋으로 되돌리기)">고정 해제</button>'}<button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
       : `<p class="hint" style="margin:0">${all.length ? '검색 결과가 없어요.' : kind === 'ps' ? '저장한 프리셋이 없어요.' : '고정한 프리셋이 없어요.'}</p>`;
     $(kind + '-pager').innerHTML = pages > 1
       ? Array.from({ length: pages }, (_, i) => `<button type="button" class="ps-b${i + 1 === cur ? ' on' : ''}" data-pg="${i + 1}">${i + 1}</button>`).join('')
@@ -769,7 +769,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
       const row = t.closest<HTMLElement>('[data-psid]');
       const item = row && (kind === 'ps' ? psList : pinList).find((p) => p.id === row.dataset.psid);
       if (!item) return;
-      if (t.closest('[data-pspin]')) {
+      if (t.closest('[data-psunpin]')) {
+        try { await psCall('POST', '', { action: 'unpin', id: item.id }); psMsg(`"${psTitle(item.name)}" 고정을 해제했어요. (내 프리셋 ${psList.length}/${psMax}개)`); } catch (err) { psFail(err); }
+      } else if (t.closest('[data-pspin]')) {
         try { await psCall('POST', '', { action: 'pin', id: item.id }); psMsg(`"${psTitle(item.name)}" 고정했어요. (고정 ${pinList.length}/${psMax}개)`); } catch (err) { psFail(err); }
       } else if (t.closest('[data-psload]')) {
         const res = applyText(item.data);
