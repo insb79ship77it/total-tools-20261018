@@ -1,6 +1,6 @@
 // 이미지 글씨 프리셋을 로그인 아이디별로 저장합니다. (Cloudflare KV, 바인딩 이름: PRESETS)
 //   GET    /api/presets                  -> { presets, pinned, max }  (내 프리셋 + 고정 프리셋)
-//   POST   /api/presets                  -> { name, data } 저장 / { action: 'pin', id } 일반 프리셋을 고정 프리셋으로 옮김
+//   POST   /api/presets                  -> { name, data } 저장 / { action: 'pin' | 'unpin', id } 고정 ↔ 일반 이동
 //   DELETE /api/presets?id=...&kind=pin  -> 하나 삭제 (kind 생략하면 일반 프리셋)
 // 일반 프리셋은 10개를 넘으면 가장 오래된 것이 지워지고, 고정 프리셋은 10개가 차면 저장이 막힙니다(직접 삭제해야 해요).
 import { userOf } from '../_lib/auth.js';
@@ -39,8 +39,20 @@ export async function onRequest({ request, env }) {
       const item = ps.find((p) => p.id === body.id);
       if (!item) return json({ error: '프리셋을 찾지 못했어요. 새로고침(↻) 후 다시 눌러 주세요.' }, 400);
       if (pins.length >= MAX) return json({ error: `고정 프리셋은 ${MAX}개까지예요. 하나를 삭제한 뒤 고정해 주세요.` }, 400);
-      await env.PRESETS.put(KEY.pin, JSON.stringify([item, ...pins]));
+      await env.PRESETS.put(KEY.pin, JSON.stringify([{ ...item, pinnedAt: new Date().toISOString() }, ...pins]));
       await env.PRESETS.put(KEY.ps, JSON.stringify(ps.filter((p) => p.id !== body.id)));
+      return json(await both());
+    }
+    // 고정 프리셋을 일반 프리셋으로 되돌립니다. 일반 프리셋이 가득 차 있으면 오래된 것이 지워지므로 막습니다.
+    if (body.action === 'unpin') {
+      const ps = await readList(env, KEY.ps);
+      const pins = await readList(env, KEY.pin);
+      const item = pins.find((p) => p.id === body.id);
+      if (!item) return json({ error: '프리셋을 찾지 못했어요. 새로고침(↻) 후 다시 눌러 주세요.' }, 400);
+      if (ps.length >= MAX) return json({ error: `내 프리셋이 ${MAX}개라서 해제할 수 없어요. 하나를 삭제한 뒤 해제해 주세요.` }, 400);
+      const { pinnedAt, ...rest } = item;
+      await env.PRESETS.put(KEY.ps, JSON.stringify([rest, ...ps]));
+      await env.PRESETS.put(KEY.pin, JSON.stringify(pins.filter((p) => p.id !== body.id)));
       return json(await both());
     }
     const kind = body.kind === 'pin' ? 'pin' : 'ps';
