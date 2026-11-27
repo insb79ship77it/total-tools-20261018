@@ -52,6 +52,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <div class="img-grid">
               <label class="img-sel" style="grid-column:1/-1"><span>이미지 크기</span>
                 <select class="field" id="pat-size">
+                  <option value="700x700" selected>정사각 700×700</option>
                   <option value="1000x1000">정사각 1000×1000</option>
                   <option value="900x900">정사각 900×900</option>
                   <option value="600x600">정사각 600×600</option>
@@ -62,8 +63,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
                   <option value="custom">직접 입력</option>
                 </select>
               </label>
-              <label class="img-sel" id="pat-w-w" hidden><span>가로 (px)</span><input class="field" type="number" id="pat-w" min="50" max="4000" value="1000" /></label>
-              <label class="img-sel" id="pat-h-w" hidden><span>세로 (px)</span><input class="field" type="number" id="pat-h" min="50" max="4000" value="1000" /></label>
+              <label class="img-sel" id="pat-w-w" hidden><span>가로 (px)</span><input class="field" type="number" id="pat-w" min="50" max="4000" value="700" /></label>
+              <label class="img-sel" id="pat-h-w" hidden><span>세로 (px)</span><input class="field" type="number" id="pat-h" min="50" max="4000" value="700" /></label>
             </div>
             <p class="hint" id="pat-custom-hint" hidden style="margin:6px 0 0">50~4000px 사이로 입력하세요. 범위를 넘으면 자동으로 맞춰져요.</p>
             <button type="button" class="btn btn-primary btn-sm" id="pat-add" style="width:100%;margin-top:12px">이 패턴으로 이미지 추가</button>
@@ -101,6 +102,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
             <div class="img-grid">
               <label class="img-sel" style="grid-column:1/-1"><span>이미지 크기</span>
                 <select class="field" id="card-size">
+                  <option value="700x700" selected>정사각 700×700</option>
                   <option value="1000x1000">정사각 1000×1000</option>
                   <option value="900x900">정사각 900×900</option>
                   <option value="600x600">정사각 600×600</option>
@@ -111,8 +113,8 @@ import ToolPage from '../../layouts/ToolPage.astro';
                   <option value="custom">직접 입력</option>
                 </select>
               </label>
-              <label class="img-sel" id="card-w-w" hidden><span>가로 (px)</span><input class="field" type="number" id="card-w" min="50" max="4000" value="1000" /></label>
-              <label class="img-sel" id="card-h-w" hidden><span>세로 (px)</span><input class="field" type="number" id="card-h" min="50" max="4000" value="1000" /></label>
+              <label class="img-sel" id="card-w-w" hidden><span>가로 (px)</span><input class="field" type="number" id="card-w" min="50" max="4000" value="700" /></label>
+              <label class="img-sel" id="card-h-w" hidden><span>세로 (px)</span><input class="field" type="number" id="card-h" min="50" max="4000" value="700" /></label>
             </div>
             <p class="hint" id="card-custom-hint" hidden style="margin:6px 0 0">50~4000px 사이로 입력하세요. 범위를 넘으면 자동으로 맞춰져요.</p>
             <button type="button" class="btn btn-primary btn-sm" id="card-add" style="width:100%;margin-top:12px">이 스타일로 이미지 추가</button>
@@ -134,12 +136,20 @@ import ToolPage from '../../layouts/ToolPage.astro';
           <p class="hint" id="preset-msg" style="margin:8px 0 12px"></p>
           <div class="img-sub">
             <h4>내 프리셋 (아이디별 저장 · 최대 10개)<button type="button" class="ps-b" id="ps-reload" style="margin-left:auto" title="새로고침" aria-label="새로고침">↻</button></h4>
-            <p class="hint" style="margin:0 0 8px">지금 설정을 서버에 저장해요. 입력한 이름 뒤에 날짜·시간이 자동으로 붙어서 같은 이름으로 여러 번 저장해도 따로 남고, 10개를 넘으면 가장 오래된 것이 지워져요. 로그인한 아이디마다 따로 저장돼요.</p>
+            <p class="hint" style="margin:0 0 8px">지금 설정을 서버에 저장해요. 10개를 넘으면 가장 오래된 것이 지워져요. 지우고 싶지 않은 것은 "고정 저장"으로 저장하면 직접 삭제하기 전까지 남아요. 로그인한 아이디마다 따로 저장돼요.</p>
             <div class="row" style="align-items:center">
-              <input class="field" id="ps-name" type="text" maxlength="24" placeholder="프리셋 이름 (뒤에 날짜·시간이 자동으로 붙어요)" />
+              <input class="field" id="ps-name" type="text" maxlength="40" placeholder="프리셋 이름" />
               <button type="button" class="btn btn-primary btn-sm" id="ps-save" style="flex:none">현재 설정 저장</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="ps-pin-save" style="flex:none">고정 저장</button>
             </div>
+            <input class="field" id="ps-q" type="search" placeholder="프리셋 이름 검색 (고정 프리셋도 함께 검색돼요)" style="margin-top:10px" />
             <div id="ps-list" style="margin-top:10px"></div>
+            <div class="ps-pager" id="ps-pager"></div>
+          </div>
+          <div class="img-sub" style="margin-top:14px">
+            <h4>고정 프리셋 (삭제하기 전까지 유지 · 최대 10개)</h4>
+            <div id="pin-list"></div>
+            <div class="ps-pager" id="pin-pager"></div>
             <p class="hint" id="ps-msg" style="margin:8px 0 0"></p>
           </div>
         </details>
@@ -321,10 +331,13 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .ps-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .ps-item:last-child { border-bottom: 0; }
   .ps-t { flex: 1; min-width: 0; }
-  .ps-t b { display: block; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ps-t b { display: block; font-size: 12px; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ps-b { flex: none; border: 1px solid #cfd8e8; background: #fff; color: var(--blue); border-radius: 6px; padding: 1px 8px; font: inherit; font-size: 0.72rem; font-weight: 700; line-height: 1.5; cursor: pointer; }
   .ps-b:hover { background: var(--soft); }
   .ps-b.del { color: var(--red); }
+  .ps-b.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .ps-pager { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+  .ps-pager:empty { display: none; }
   .ps-t small { color: var(--muted); font-size: 0.78rem; }
   @media (max-width: 900px) { .img-layout { grid-template-columns: 1fr; } .img-side { position: static; order: -1; } }
 </style>
@@ -677,16 +690,35 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
   // ---- 내 프리셋 (아이디별 서버 저장, 최대 10개) ----
   type PItem = { id: string; name: string; savedAt: string; data: string };
+  type PKind = 'ps' | 'pin';
   let psList: PItem[] = [];
+  let pinList: PItem[] = [];
   let psMax = 10;
   let psLoaded = false;
+  const PS_PER = 5; // 한 페이지에 5개
+  const psPage: Record<PKind, number> = { ps: 1, pin: 1 };
+  let psQ = '';
   const psMsg = (t: string, ok = true) => { const m = $('ps-msg'); m.textContent = t; m.style.color = ok ? 'var(--green)' : 'var(--red)'; };
   const psWhen = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
-  function renderPs() {
-    $('ps-list').innerHTML = psList.length
-      ? psList.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(p.name)}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
-      : '<p class="hint" style="margin:0">저장한 프리셋이 없어요.</p>';
+  // 예전에 이름 뒤에 자동으로 붙었던 날짜·시간은 보이지 않게 합니다. (저장 날짜는 이름 아래에 따로 나와요)
+  const psTitle = (n: string) => n.replace(/ \d{1,2}\/\d{1,2} \d{1,2}:\d{2}(:\d{2})?$/, '') || n;
+  const psCount = () => `프리셋 ${psList.length}/${psMax}개 · 고정 ${pinList.length}/${psMax}개`;
+  function renderOne(kind: PKind) {
+    const all = kind === 'ps' ? psList : pinList;
+    const q = psQ.trim().toLowerCase();
+    const list = q ? all.filter((p) => psTitle(p.name).toLowerCase().includes(q)) : all;
+    const pages = Math.max(1, Math.ceil(list.length / PS_PER));
+    if (psPage[kind] > pages) psPage[kind] = pages;
+    const cur = psPage[kind];
+    const part = list.slice((cur - 1) * PS_PER, cur * PS_PER);
+    $(kind + '-list').innerHTML = part.length
+      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
+      : `<p class="hint" style="margin:0">${all.length ? '검색 결과가 없어요.' : kind === 'ps' ? '저장한 프리셋이 없어요.' : '고정한 프리셋이 없어요.'}</p>`;
+    $(kind + '-pager').innerHTML = pages > 1
+      ? Array.from({ length: pages }, (_, i) => `<button type="button" class="ps-b${i + 1 === cur ? ' on' : ''}" data-pg="${i + 1}">${i + 1}</button>`).join('')
+      : '';
   }
+  function renderPs() { renderOne('ps'); renderOne('pin'); }
   async function psCall(method: string, qs = '', body?: unknown) {
     const res = await fetch('/api/presets' + qs, { method, headers: body ? { 'content-type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
     let d: any = {};
@@ -694,6 +726,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     if (res.status === 401) throw new Error('login');
     if (!res.ok) throw new Error(d.error || `서버 오류 (HTTP ${res.status})`);
     psList = d.presets || [];
+    pinList = d.pinned || [];
     psMax = d.max || 10;
     renderPs();
   }
@@ -707,34 +740,45 @@ import ToolPage from '../../layouts/ToolPage.astro';
   function psLoadOnce() {
     if (psLoaded) return;
     psLoaded = true;
-    psCall('GET').then(() => psMsg(`저장된 프리셋 ${psList.length}/${psMax}개`)).catch((e) => { psLoaded = false; psFail(e); });
+    psCall('GET').then(() => psMsg(`저장된 ${psCount()}`)).catch((e) => { psLoaded = false; psFail(e); });
   }
   $('ps-reload').addEventListener('click', async () => {
-    try { await psCall('GET'); psLoaded = true; psMsg(`새로고침했어요. 저장된 프리셋 ${psList.length}/${psMax}개`); } catch (e) { psLoaded = false; psFail(e); }
+    try { await psCall('GET'); psLoaded = true; psMsg(`새로고침했어요. 저장된 ${psCount()}`); } catch (e) { psLoaded = false; psFail(e); }
   });
-  $('ps-save').addEventListener('click', async () => {
-    const d = new Date();
-    const base = $<HTMLInputElement>('ps-name').value.trim().slice(0, 24) || '프리셋';
-    const name = `${base} ${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  async function psSave(kind: PKind) {
+    const name = $<HTMLInputElement>('ps-name').value.trim().slice(0, 40) || '프리셋';
     try {
-      await psCall('POST', '', { name, data: toPresetText(secs, wm, bgi, order) });
+      await psCall('POST', '', { name, data: toPresetText(secs, wm, bgi, order), kind });
       $<HTMLInputElement>('ps-name').value = '';
       psLoaded = true;
-      psMsg(`"${name}" 저장했어요. (${psList.length}/${psMax}개)`);
+      psPage[kind] = 1;
+      renderOne(kind);
+      psMsg(kind === 'pin' ? `"${name}" 고정 프리셋으로 저장했어요. (${pinList.length}/${psMax}개)` : `"${name}" 저장했어요. (${psList.length}/${psMax}개)`);
     } catch (e) { psFail(e); }
-  });
-  $('ps-list').addEventListener('click', async (e) => {
-    const t = e.target as HTMLElement;
-    const row = t.closest<HTMLElement>('[data-psid]');
-    const item = row && psList.find((p) => p.id === row.dataset.psid);
-    if (!item) return;
-    if (t.closest('[data-psload]')) {
-      const res = applyText(item.data);
-      psMsg(res.ok ? `"${item.name}" 프리셋을 불러왔어요.` : res.error!, res.ok);
-    } else if (t.closest('[data-psdel]')) {
-      if (!confirm(`"${item.name}" 프리셋을 삭제할까요?`)) return;
-      try { await psCall('DELETE', `?id=${encodeURIComponent(item.id)}`); psMsg('삭제했어요.'); } catch (err) { psFail(err); }
-    }
+  }
+  $('ps-save').addEventListener('click', () => psSave('ps'));
+  $('ps-pin-save').addEventListener('click', () => psSave('pin'));
+  $('ps-q').addEventListener('input', (e) => { psQ = (e.target as HTMLInputElement).value; psPage.ps = 1; psPage.pin = 1; renderPs(); });
+  (['ps', 'pin'] as PKind[]).forEach((kind) => {
+    $(kind + '-pager').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-pg]');
+      if (!b) return;
+      psPage[kind] = Number(b.dataset.pg);
+      renderOne(kind);
+    });
+    $(kind + '-list').addEventListener('click', async (e) => {
+      const t = e.target as HTMLElement;
+      const row = t.closest<HTMLElement>('[data-psid]');
+      const item = row && (kind === 'ps' ? psList : pinList).find((p) => p.id === row.dataset.psid);
+      if (!item) return;
+      if (t.closest('[data-psload]')) {
+        const res = applyText(item.data);
+        psMsg(res.ok ? `"${psTitle(item.name)}" 프리셋을 불러왔어요.` : res.error!, res.ok);
+      } else if (t.closest('[data-psdel]')) {
+        if (!confirm(`"${psTitle(item.name)}" ${kind === 'pin' ? '고정 ' : ''}프리셋을 삭제할까요?`)) return;
+        try { await psCall('DELETE', `?id=${encodeURIComponent(item.id)}&kind=${kind}`); psMsg('삭제했어요.'); } catch (err) { psFail(err); }
+      }
+    });
   });
   renderPs();
 
@@ -977,7 +1021,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     sel: new Set<string>([PATTERNS[0][0]]),
     active: PATTERNS[0][0], // 미리보기에 보여줄 패턴 (마지막으로 누른 것)
     mode: 'solid', bg: '#243b6b', bg2: '#0b1530', angle: 135, fg: '#3d5a9c', scale: 1, alpha: 100,
-    size: '1000x1000', cw: 1000, ch: 1000,
+    size: '700x700', cw: 700, ch: 700,
   };
   const bgSpec = () => (patState.mode === 'grad' ? `grad:${patState.bg}:${patState.bg2}:${patState.angle}` : patState.bg);
   const patSvg = (id: string, w: number, h: number) => makeSvg(id, bgSpec(), patState.fg, w, h, patState.scale, undefined, patState.alpha / 100);
@@ -994,15 +1038,6 @@ import ToolPage from '../../layouts/ToolPage.astro';
 
   // 추천 색상: 네 가지 색이 한 묶음이에요. 밝기순으로 정렬해서 배경(어두운 쪽 2색)과 패턴색(그다음 색)에 넣습니다.
   const PALETTES: [string, string[]][] = [
-    ['미드나이트 블루', ['#0f172a', '#1e3a5f', '#38bdf8', '#e0f2fe']],
-    ['딥 포레스트', ['#10261f', '#1d4d3b', '#4ade80', '#ecfccb']],
-    ['와인', ['#2b0f1c', '#5b1a35', '#e11d74', '#fde2ec']],
-    ['차콜 골드', ['#1a1a1d', '#34343b', '#d4a72c', '#f5e6b3']],
-    ['오션', ['#06283d', '#1363df', '#47b5ff', '#dff6ff']],
-    ['선셋', ['#3d1e6d', '#c2185b', '#ff7a45', '#ffd166']],
-    ['라벤더 나이트', ['#1b1535', '#4c3a8a', '#9b8cf0', '#ece8ff']],
-    ['민트 나이트', ['#0d2b2b', '#11595a', '#2dd4bf', '#ccfbf1']],
-    ['레드 블랙', ['#14090b', '#5c0f1d', '#e63946', '#fdebec']],
     ['블루 그레이', ['#263447', '#3d5a80', '#98c1d9', '#e8f4fa']],
     ['쿨 그레이', ['#1f2933', '#52606d', '#9aa5b1', '#e4e7eb']],
     ['네온 퍼플', ['#0b0b17', '#7c3aed', '#22d3ee', '#f0abfc']],
@@ -1134,7 +1169,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     sel: new Set<string>([CARD_STYLES[0][0]]),
     active: CARD_STYLES[0][0], // 미리보기에 보여줄 스타일 (마지막으로 누른 것)
     c: { bg: '#cfe3f7', card: '#f7f9fc', accent: '#2f5bd9', sub: '#a9c9ee' },
-    size: '1000x1000', cw: 1000, ch: 1000,
+    size: '700x700', cw: 700, ch: 700,
   };
   const cardSvg = (id: string, w: number, h: number) => makeCardSvg(id, cardState.c, w, h);
   function cardDims(): [number, number] {
