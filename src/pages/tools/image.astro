@@ -711,7 +711,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const cur = psPage[kind];
     const part = list.slice((cur - 1) * PS_PER, cur * PS_PER);
     $(kind + '-list').innerHTML = part.length
-      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}${kind === 'pin' && p.pinnedAt ? ` (고정시간: ${esc(psWhen(p.pinnedAt))})` : ''}</small></div>${kind === 'ps' ? '<button type="button" class="ps-b" data-pspin title="고정 프리셋으로 옮기기" aria-label="고정">📌</button>' : '<button type="button" class="ps-b" data-psunpin title="고정 해제 (내 프리셋으로 되돌리기)">고정 해제</button>'}<button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
+      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}${kind === 'pin' && p.pinnedAt ? ` (고정시간: ${esc(psWhen(p.pinnedAt))})` : ''}</small></div>${kind === 'ps' ? '<button type="button" class="ps-b" data-pspin title="고정 프리셋으로 옮기기" aria-label="고정">📌</button>' : '<button type="button" class="ps-b" data-psunpin title="고정 해제 (내 프리셋으로 되돌리기)">❌</button>'}<button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
       : `<p class="hint" style="margin:0">${all.length ? '검색 결과가 없어요.' : kind === 'ps' ? '저장한 프리셋이 없어요.' : '고정한 프리셋이 없어요.'}</p>`;
     $(kind + '-pager').innerHTML = pages > 1
       ? Array.from({ length: pages }, (_, i) => `<button type="button" class="ps-b${i + 1 === cur ? ' on' : ''}" data-pg="${i + 1}">${i + 1}</button>`).join('')
