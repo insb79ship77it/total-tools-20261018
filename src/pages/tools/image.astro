@@ -136,11 +136,10 @@ import ToolPage from '../../layouts/ToolPage.astro';
           <p class="hint" id="preset-msg" style="margin:8px 0 12px"></p>
           <div class="img-sub">
             <h4>내 프리셋 (아이디별 저장 · 최대 10개)<button type="button" class="ps-b" id="ps-reload" style="margin-left:auto" title="새로고침" aria-label="새로고침">↻</button></h4>
-            <p class="hint" style="margin:0 0 8px">지금 설정을 서버에 저장해요. 10개를 넘으면 가장 오래된 것이 지워져요. 지우고 싶지 않은 것은 "고정 저장"으로 저장하면 직접 삭제하기 전까지 남아요. 로그인한 아이디마다 따로 저장돼요.</p>
+            <p class="hint" style="margin:0 0 8px">지금 설정을 서버에 저장해요. 10개를 넘으면 가장 오래된 것이 지워져요. 지우고 싶지 않은 것은 📌를 눌러 고정 프리셋으로 옮기면 직접 삭제하기 전까지 남아요. 로그인한 아이디마다 따로 저장돼요.</p>
             <div class="row" style="align-items:center">
               <input class="field" id="ps-name" type="text" maxlength="40" placeholder="프리셋 이름" />
               <button type="button" class="btn btn-primary btn-sm" id="ps-save" style="flex:none">현재 설정 저장</button>
-              <button type="button" class="btn btn-ghost btn-sm" id="ps-pin-save" style="flex:none">고정 저장</button>
             </div>
             <input class="field" id="ps-q" type="search" placeholder="프리셋 이름 검색 (고정 프리셋도 함께 검색돼요)" style="margin-top:10px" />
             <div id="ps-list" style="margin-top:10px"></div>
@@ -331,7 +330,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
   .ps-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .ps-item:last-child { border-bottom: 0; }
   .ps-t { flex: 1; min-width: 0; }
-  .ps-t b { display: block; font-size: 12px; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ps-t b { display: block; font-size: 13px; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ps-b { flex: none; border: 1px solid #cfd8e8; background: #fff; color: var(--blue); border-radius: 6px; padding: 1px 8px; font: inherit; font-size: 0.72rem; font-weight: 700; line-height: 1.5; cursor: pointer; }
   .ps-b:hover { background: var(--soft); }
   .ps-b.del { color: var(--red); }
@@ -712,7 +711,7 @@ import ToolPage from '../../layouts/ToolPage.astro';
     const cur = psPage[kind];
     const part = list.slice((cur - 1) * PS_PER, cur * PS_PER);
     $(kind + '-list').innerHTML = part.length
-      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}</small></div><button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
+      ? part.map((p) => `<div class="ps-item" data-psid="${esc(p.id)}"><div class="ps-t"><b>${esc(psTitle(p.name))}</b><small>${esc(psWhen(p.savedAt))}</small></div>${kind === 'ps' ? '<button type="button" class="ps-b" data-pspin title="고정 프리셋으로 옮기기" aria-label="고정">📌</button>' : ''}<button type="button" class="ps-b" data-psload>적용</button><button type="button" class="ps-b del" data-psdel>삭제</button></div>`).join('')
       : `<p class="hint" style="margin:0">${all.length ? '검색 결과가 없어요.' : kind === 'ps' ? '저장한 프리셋이 없어요.' : '고정한 프리셋이 없어요.'}</p>`;
     $(kind + '-pager').innerHTML = pages > 1
       ? Array.from({ length: pages }, (_, i) => `<button type="button" class="ps-b${i + 1 === cur ? ' on' : ''}" data-pg="${i + 1}">${i + 1}</button>`).join('')
@@ -757,7 +756,6 @@ import ToolPage from '../../layouts/ToolPage.astro';
     } catch (e) { psFail(e); }
   }
   $('ps-save').addEventListener('click', () => psSave('ps'));
-  $('ps-pin-save').addEventListener('click', () => psSave('pin'));
   $('ps-q').addEventListener('input', (e) => { psQ = (e.target as HTMLInputElement).value; psPage.ps = 1; psPage.pin = 1; renderPs(); });
   (['ps', 'pin'] as PKind[]).forEach((kind) => {
     $(kind + '-pager').addEventListener('click', (e) => {
@@ -771,7 +769,9 @@ import ToolPage from '../../layouts/ToolPage.astro';
       const row = t.closest<HTMLElement>('[data-psid]');
       const item = row && (kind === 'ps' ? psList : pinList).find((p) => p.id === row.dataset.psid);
       if (!item) return;
-      if (t.closest('[data-psload]')) {
+      if (t.closest('[data-pspin]')) {
+        try { await psCall('POST', '', { action: 'pin', id: item.id }); psMsg(`"${psTitle(item.name)}" 고정했어요. (고정 ${pinList.length}/${psMax}개)`); } catch (err) { psFail(err); }
+      } else if (t.closest('[data-psload]')) {
         const res = applyText(item.data);
         psMsg(res.ok ? `"${psTitle(item.name)}" 프리셋을 불러왔어요.` : res.error!, res.ok);
       } else if (t.closest('[data-psdel]')) {
